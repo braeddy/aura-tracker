@@ -7,14 +7,17 @@ Una webapp moderna per tracciare l'aura dei giocatori in partite competitive. Cr
 ![Supabase](https://img.shields.io/badge/Supabase-green?style=for-the-badge&logo=supabase)
 ![Vercel](https://img.shields.io/badge/Vercel-black?style=for-the-badge&logo=vercel)
 
+## 🎮 **[DEMO LIVE](https://aura-tracker.vercel.app)**
+
 ## ✨ Caratteristiche
 
 - 🎮 **Partite multiple**: Crea partite uniche con codici condivisibili
 - 👥 **Multigiocatore**: Aggiungi giocatori con avatar personalizzati  
 - 🏆 **Classifiche**: Sistema di punti aura in tempo reale
-- 📱 **Mobile-first**: UI responsive e moderna
+- 📱 **Mobile-first**: UI responsive e moderna con design glassmorphism
 - ⚡ **Tempo reale**: Aggiornamenti istantanei per tutti i giocatori
 - 🔒 **Gratuito**: Hostato gratuitamente su Vercel con Supabase
+- 🎨 **UI Moderna**: Design glassmorphism con animazioni fluide
 
 ## 🚀 Setup Rapido
 
