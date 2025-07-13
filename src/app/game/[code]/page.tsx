@@ -679,115 +679,116 @@ export default function GamePage() {
         {/* Header */}
         <div className="relative z-10 bg-white/10 backdrop-blur-lg border-b border-white/20">
           {/* Exit Button - Top Left */}
-          <div className="absolute top-4 left-4 z-20">
+          <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-20">
             <button
               onClick={() => router.push('/')}
-              className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur border border-white/30 rounded-xl text-white transition-all duration-300 transform hover:scale-105 shadow-lg"
+              className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1 sm:py-2 bg-white/20 hover:bg-white/30 backdrop-blur border border-white/30 rounded-lg sm:rounded-xl text-white transition-all duration-300 transform hover:scale-105 shadow-lg"
               title="Esci dalla partita"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm font-medium">Esci</span>
+              <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="text-xs sm:text-sm font-medium hidden sm:inline">Esci</span>
             </button>
           </div>
 
-          <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-3 rounded-2xl shadow-lg">
-                <Sparkles className="h-8 w-8 text-white animate-pulse" />
+          <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 text-center">
+            <div className="flex justify-center mb-2 sm:mb-4">
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-lg">
+                <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-white animate-pulse" />
               </div>
             </div>
-            <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-yellow-400 mb-3">
+            <h1 className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-yellow-400 mb-2 sm:mb-3">
               AuraTracker
             </h1>
-            <p className="text-gray-300 text-lg mb-2">✨ Traccia l&apos;aura dei tuoi amici ✨</p>
-            <div className="text-sm text-gray-400">
+            <p className="text-base sm:text-lg text-gray-300 mb-1 sm:mb-2">✨ Traccia l&apos;aura dei tuoi amici ✨</p>
+            <div className="text-xs sm:text-sm text-gray-400">
               Partita: <span className="font-medium text-white">{game.name}</span> • 
               Codice: <span className="font-mono font-semibold text-yellow-400">{game.code}</span>
             </div>
           </div>
 
           {/* Navigation */}
-          <div className="max-w-7xl mx-auto px-4">
-            <div className="flex justify-center items-center space-x-6 pb-6">
+          <div className="max-w-7xl mx-auto px-2 sm:px-4">
+            <div className="flex justify-center items-center space-x-2 sm:space-x-6 pb-4 sm:pb-6 overflow-x-auto">
               <button
                 onClick={() => setActiveTab('home')}
-                className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg backdrop-blur ${
+                className={`flex items-center gap-1 sm:gap-2 px-4 sm:px-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-lg transition-all duration-300 transform hover:scale-105 shadow-lg backdrop-blur whitespace-nowrap ${
                   activeTab === 'home' 
                     ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-xl border border-white/20' 
                     : 'bg-white/20 text-gray-300 hover:bg-white/30 hover:text-white border border-white/20'
                 }`}
               >
-                🏠 Home
+                🏠 <span className="hidden sm:inline">Home</span>
               </button>
               <button
                 onClick={() => setActiveTab('players')}
-                className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg backdrop-blur ${
+                className={`flex items-center gap-1 sm:gap-2 px-4 sm:px-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-lg transition-all duration-300 transform hover:scale-105 shadow-lg backdrop-blur whitespace-nowrap ${
                   activeTab === 'players' 
                     ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-xl border border-white/20' 
                     : 'bg-white/20 text-gray-300 hover:bg-white/30 hover:text-white border border-white/20'
                 }`}
               >
-                👥 {players.length} Giocatori
+                👥 <span className="hidden sm:inline">{players.length} Giocatori</span>
+                <span className="sm:hidden">{players.length}</span>
               </button>
               
               {/* Action Buttons */}
               <button
                 onClick={resetGame}
-                className="flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 transition-all duration-300 transform hover:scale-105 shadow-xl backdrop-blur border border-white/20"
+                className="flex items-center gap-1 sm:gap-2 px-3 sm:px-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 transition-all duration-300 transform hover:scale-105 shadow-xl backdrop-blur border border-white/20 whitespace-nowrap"
               >
-                🔄 Reset
+                🔄 <span className="hidden sm:inline">Reset</span>
               </button>
               <button
                 onClick={deleteGame}
-                className="flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-lg bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-105 shadow-xl backdrop-blur border border-white/20"
+                className="flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-lg bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-105 shadow-xl backdrop-blur border border-white/20 whitespace-nowrap"
               >
-                🗑️ Elimina Partita
+                🗑️ <span className="hidden sm:inline">Elimina</span>
               </button>
             </div>
           </div>
 
           {/* Status */}
-          <div className="max-w-7xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-center gap-2 text-sm">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+          <div className="max-w-7xl mx-auto px-4 py-2 sm:py-3">
+            <div className="flex items-center justify-center gap-2 text-xs sm:text-sm">
+              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-400 rounded-full animate-pulse"></div>
               <span className="text-green-400 font-medium">Online</span>
             </div>
           </div>
         </div>
 
         {/* Content */}
-        <div className="relative z-10 max-w-7xl mx-auto px-4 py-8">
+        <div className="relative z-10 max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
           {activeTab === 'home' && (
-            <div className="grid lg:grid-cols-3 gap-8">
+            <div className="grid lg:grid-cols-3 gap-4 sm:gap-8">
               {/* Left Side - Add Player and Players */}
-              <div className="lg:col-span-2 space-y-8">
+              <div className="lg:col-span-2 space-y-4 sm:space-y-8">
                 {/* Add Player Section */}
-                <div className="bg-white/10 backdrop-blur-lg rounded-3xl border border-white/20 shadow-2xl p-8 hover:bg-white/15 transition-all duration-300">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="bg-gradient-to-r from-green-500 to-teal-500 p-2 rounded-xl">
-                      <UserPlus className="h-6 w-6 text-white" />
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-2xl p-4 sm:p-8 hover:bg-white/15 transition-all duration-300">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                    <div className="bg-gradient-to-r from-green-500 to-teal-500 p-1.5 sm:p-2 rounded-lg sm:rounded-xl">
+                      <UserPlus className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
                     </div>
-                    <h2 className="text-2xl font-bold text-white">
+                    <h2 className="text-lg sm:text-2xl font-bold text-white">
                       Aggiungi Giocatore
                     </h2>
                   </div>
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     <input
                       type="text"
                       placeholder="Nome del giocatore..."
                       value={newPlayerName}
                       onChange={(e) => setNewPlayerName(e.target.value)}
-                      className="w-full px-6 py-4 bg-white/20 backdrop-blur border border-white/30 rounded-2xl text-white placeholder-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 text-center text-lg"
+                      className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-white/20 backdrop-blur border border-white/30 rounded-xl sm:rounded-2xl text-white placeholder-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 text-center text-base sm:text-lg"
                       onKeyPress={(e) => e.key === 'Enter' && addPlayer()}
                     />
                     <button
                       onClick={addPlayer}
                       disabled={!newPlayerName.trim() || addingPlayer}
-                      className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg text-lg"
+                      className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg text-base sm:text-lg"
                     >
                       {addingPlayer ? (
                         <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white inline-block mr-2"></div>
+                          <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white inline-block mr-2"></div>
                           Aggiungendo...
                         </>
                       ) : (
@@ -800,23 +801,23 @@ export default function GamePage() {
                 </div>
 
                 {/* Players Grid */}
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   {players.sort((a, b) => b.aura_points - a.aura_points).map((player, index) => (
                     <div 
                       key={player.id} 
-                      className="bg-white/10 backdrop-blur-lg rounded-3xl border border-white/20 shadow-xl p-6 cursor-pointer hover:bg-white/20 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl"
+                      className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-xl p-4 sm:p-6 cursor-pointer hover:bg-white/20 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl"
                       onClick={() => setSelectedPlayer(player)}
                     >
                       {/* Player Header */}
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-4">
-                          <div className="text-3xl">{index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : '⭐'}</div>
-                          <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-full w-12 h-12 flex items-center justify-center font-bold text-xl text-white shadow-lg">
+                      <div className="flex items-center justify-between mb-4 sm:mb-6">
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <div className="text-2xl sm:text-3xl">{index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : '⭐'}</div>
+                          <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-full w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center font-bold text-lg sm:text-xl text-white shadow-lg">
                             {player.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-bold text-white text-xl">{player.name}</div>
-                            <div className="text-sm text-gray-300">#{index + 1} • 🔍 Clicca per dettagli</div>
+                            <div className="font-bold text-white text-lg sm:text-xl">{player.name}</div>
+                            <div className="text-xs sm:text-sm text-gray-300">#{index + 1} • 🔍 Dettagli</div>
                           </div>
                         </div>
                         <button
@@ -827,26 +828,26 @@ export default function GamePage() {
                           className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white p-2 rounded-xl transition-all duration-300 transform hover:scale-110 shadow-lg opacity-70 hover:opacity-100"
                           title="Elimina giocatore"
                         >
-                          <UserX className="w-4 h-4" />
+                          <UserX className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                       </div>
 
                       {/* Aura Points Display */}
-                      <div className="text-center mb-8">
-                        <div className="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400 mb-3">
+                      <div className="text-center mb-6 sm:mb-8">
+                        <div className="text-4xl sm:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400 mb-2 sm:mb-3">
                           {formatAuraValue(player.aura_points)}
                         </div>
-                        <div className="text-lg font-semibold text-gray-200 mb-1">✨ Aura Points ✨</div>
-                        <div className="text-sm text-gray-400">
+                        <div className="text-base sm:text-lg font-semibold text-gray-200 mb-1">✨ Aura Points ✨</div>
+                        <div className="text-xs sm:text-sm text-gray-400">
                           Valore esatto: {player.aura_points.toLocaleString()}
                         </div>
                       </div>
 
                       {/* Aura Controls */}
-                      <div className="space-y-6">
+                      <div className="space-y-4 sm:space-y-6">
                         {/* Custom Aura Section */}
-                        <div className="bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/20">
-                          <div className="text-center text-base font-semibold text-gray-200 mb-4">
+                        <div className="bg-white/10 backdrop-blur rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/20">
+                          <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-3 sm:mb-4">
                             🎯 Aura Personalizzata
                           </div>
                           <input
@@ -863,7 +864,7 @@ export default function GamePage() {
                               updateAura(player.id, parseInt(customAura[player.id]) || 0, customMotivo[player.id] || 'Aura personalizzata')
                             }}
                             disabled={!customAura[player.id]}
-                            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100"
+                            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100 text-sm sm:text-base"
                           >
                             ⚡ Applica Aura
                           </button>
@@ -876,21 +877,21 @@ export default function GamePage() {
                           value={customMotivo[player.id] || ''}
                           onChange={(e) => setCustomMotivo(prev => ({ ...prev, [player.id]: e.target.value }))}
                           onClick={(e) => e.stopPropagation()}
-                          className="w-full px-4 py-3 bg-white/20 backdrop-blur border border-white/30 rounded-xl text-white placeholder-gray-300 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/20 backdrop-blur border border-white/30 rounded-xl text-white placeholder-gray-300 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
                         />
 
                         {/* Quick Modifications (K) */}
                         <div>
-                          <div className="text-center text-base font-semibold text-gray-200 mb-3">
+                          <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-2 sm:mb-3">
                             ⚡ Modifiche Rapide (K)
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-2 gap-2 sm:gap-3">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 updateAura(player.id, 1000, 'Aura +1K')
                               }}
-                              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
                               +1K
                             </button>
@@ -899,7 +900,7 @@ export default function GamePage() {
                                 e.stopPropagation()
                                 updateAura(player.id, 5000, 'Aura +5K')
                               }}
-                              className="bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                              className="bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
                               +5K
                             </button>
@@ -908,7 +909,7 @@ export default function GamePage() {
                                 e.stopPropagation()
                                 updateAura(player.id, -1000, 'Aura -1K')
                               }}
-                              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
                               -1K
                             </button>
@@ -917,7 +918,7 @@ export default function GamePage() {
                                 e.stopPropagation()
                                 updateAura(player.id, -5000, 'Aura -5K')
                               }}
-                              className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                              className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
                               -5K
                             </button>
@@ -926,16 +927,16 @@ export default function GamePage() {
 
                         {/* Extreme Values (M) */}
                         <div>
-                          <div className="text-center text-base font-semibold text-gray-200 mb-3">
+                          <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-2 sm:mb-3">
                             🔥 Valori Estremi (M)
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-2 gap-2 sm:gap-3">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 updateAura(player.id, 100000, 'Aura +100K')
                               }}
-                              className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                              className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
                             +100K
                             </button>
@@ -944,7 +945,7 @@ export default function GamePage() {
                                 e.stopPropagation()
                                 updateAura(player.id, 1000000, 'Aura +1M')
                               }}
-                              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
                               +1M
                             </button>
@@ -953,7 +954,7 @@ export default function GamePage() {
                                 e.stopPropagation()
                                 updateAura(player.id, -100000, 'Aura -100K')
                               }}
-                              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
                               -100K
                             </button>
@@ -962,7 +963,7 @@ export default function GamePage() {
                                 e.stopPropagation()
                                 updateAura(player.id, -1000000, 'Aura -1M')
                               }}
-                              className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg"
+                              className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
                               -1M
                             </button>
@@ -983,28 +984,28 @@ export default function GamePage() {
               </div>
 
               {/* Right Side - Action History */}
-              <div className="lg:col-span-1">
-                <div className="bg-white/10 backdrop-blur-lg rounded-3xl border border-white/20 shadow-2xl p-8 sticky top-8">
-                  <div className="flex items-center gap-3 mb-6">
+              <div className="lg:col-span-1 mt-8 lg:mt-0">
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-2xl p-4 sm:p-8 lg:sticky lg:top-8">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
                     <div className="bg-gradient-to-r from-indigo-500 to-purple-500 p-2 rounded-xl">
-                      <Clock className="h-6 w-6 text-white" />
+                      <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                     </div>
-                    <h2 className="text-2xl font-bold text-white">
+                    <h2 className="text-xl sm:text-2xl font-bold text-white">
                       Storico Azioni
                     </h2>
                   </div>
                   {actions.length === 0 ? (
-                    <div className="text-center py-12">
-                      <div className="text-6xl mb-4">📋</div>
-                      <p className="text-lg font-medium text-gray-200 mb-2">Nessuna azione ancora registrata</p>
+                    <div className="text-center py-8 sm:py-12">
+                      <div className="text-4xl sm:text-6xl mb-4">📋</div>
+                      <p className="text-base sm:text-lg font-medium text-gray-200 mb-2">Nessuna azione ancora registrata</p>
                       <p className="text-sm text-gray-400">🎮 Le azioni appariranno qui quando inizierai a giocare!</p>
                   </div>
                 ) : (
-                  <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                  <div className="space-y-3 sm:space-y-4 max-h-[400px] sm:max-h-[600px] overflow-y-auto">
                     {actions.map((action) => (
-                      <div key={action.id} className="flex items-start gap-4 p-6 bg-white/10 backdrop-blur border border-white/20 rounded-2xl hover:bg-white/20 transition-all duration-300">
+                      <div key={action.id} className="flex items-start gap-3 sm:gap-4 p-4 sm:p-6 bg-white/10 backdrop-blur border border-white/20 rounded-xl sm:rounded-2xl hover:bg-white/20 transition-all duration-300">
                         <div className="flex-shrink-0">
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-bold backdrop-blur border border-white/30 ${
+                          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center text-xs sm:text-sm font-bold backdrop-blur border border-white/30 ${
                             action.points > 0 
                               ? 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 text-green-300' 
                               : 'bg-gradient-to-r from-red-500/30 to-pink-500/30 text-red-300'
@@ -1013,10 +1014,10 @@ export default function GamePage() {
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="font-bold text-white text-lg">
+                          <div className="font-bold text-white text-base sm:text-lg">
                             {players.find(p => p.id === action.player_id)?.name}
                           </div>
-                          <div className="text-sm text-gray-300 truncate mt-1">
+                          <div className="text-xs sm:text-sm text-gray-300 truncate mt-1">
                             {action.description}
                           </div>
                           <div className="text-xs text-gray-400 mt-2 flex items-center gap-1">
@@ -1037,36 +1038,36 @@ export default function GamePage() {
         )}
 
         {activeTab === 'players' && (
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl border border-white/20 shadow-2xl p-8">
-            <div className="flex items-center gap-3 mb-6">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-2xl p-4 sm:p-8">
+            <div className="flex items-center gap-3 mb-4 sm:mb-6">
               <div className="bg-gradient-to-r from-yellow-500 to-orange-500 p-2 rounded-xl">
-                <Trophy className="h-6 w-6 text-white" />
+                <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-white">🏆 Classifica Giocatori</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">🏆 Classifica Giocatori</h2>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {players.sort((a, b) => b.aura_points - a.aura_points).map((player, index) => (
-                <div key={player.id} className="flex items-center justify-between p-6 bg-white/10 backdrop-blur rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
-                  <div className="flex items-center gap-4">
-                    <span className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
+                <div key={player.id} className="flex items-center justify-between p-4 sm:p-6 bg-white/10 backdrop-blur rounded-xl sm:rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <span className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full flex items-center justify-center font-bold text-sm sm:text-lg shadow-lg">
                       {index + 1}
                     </span>
-                    <span className="text-3xl">{index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : '⭐'}</span>
-                    <span className="font-bold text-xl text-white">{player.name}</span>
+                    <span className="text-2xl sm:text-3xl">{index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : '⭐'}</span>
+                    <span className="font-bold text-lg sm:text-xl text-white">{player.name}</span>
                   </div>
                   <div className="text-right">
-                    <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400">
+                    <div className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400">
                       {formatAuraValue(player.aura_points)}
                     </div>
-                    <div className="text-sm text-gray-300">{player.aura_points.toLocaleString()} punti</div>
+                    <div className="text-xs sm:text-sm text-gray-300">{player.aura_points.toLocaleString()} punti</div>
                   </div>
                 </div>
               ))}
               {players.length === 0 && (
-                <div className="text-center py-16">
-                  <div className="text-8xl mb-6">🏆</div>
-                  <p className="text-2xl font-bold text-white mb-2">Nessun giocatore in classifica</p>
-                  <p className="text-lg text-gray-300">✨ Aggiungi giocatori per vedere la classifica! ✨</p>
+                <div className="text-center py-12 sm:py-16">
+                  <div className="text-6xl sm:text-8xl mb-4 sm:mb-6">🏆</div>
+                  <p className="text-xl sm:text-2xl font-bold text-white mb-2">Nessun giocatore in classifica</p>
+                  <p className="text-base sm:text-lg text-gray-300">✨ Aggiungi giocatori per vedere la classifica! ✨</p>
                 </div>
               )}
             </div>
