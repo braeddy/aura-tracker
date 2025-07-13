@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { RefreshCw, UserPlus, Copy, Check, Bell, X, BarChart3, TrendingUp, TrendingDown, Sparkles, Heart, Zap, Calendar, Activity, Clock, Trophy, UserX, Trash2, RotateCcw, Gamepad2, ArrowLeft } from 'lucide-react'
+import { UserPlus, BarChart3, TrendingUp, TrendingDown, Sparkles, Heart, Zap, Calendar, Activity, Clock, Trophy, UserX, ArrowLeft } from 'lucide-react'
 
 interface Player {
   id: string
@@ -111,7 +111,7 @@ export default function GamePage() {
     }
   }
 
-  const fetchGameData = async () => {
+  const fetchGameData = useCallback(async () => {
     try {
       const response = await fetch(`/api/games/${code}`)
       if (!response.ok) {
@@ -131,13 +131,13 @@ export default function GamePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [code])
 
   useEffect(() => {
     if (code) {
       fetchGameData()
     }
-  }, [code])
+  }, [code, fetchGameData])
 
   const addPlayer = async () => {
     if (!newPlayerName.trim()) return
@@ -699,7 +699,7 @@ export default function GamePage() {
             <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-yellow-400 mb-3">
               AuraTracker
             </h1>
-            <p className="text-gray-300 text-lg mb-2">✨ Traccia l'aura dei tuoi amici ✨</p>
+            <p className="text-gray-300 text-lg mb-2">✨ Traccia l&apos;aura dei tuoi amici ✨</p>
             <div className="text-sm text-gray-400">
               Partita: <span className="font-medium text-white">{game.name}</span> • 
               Codice: <span className="font-mono font-semibold text-yellow-400">{game.code}</span>

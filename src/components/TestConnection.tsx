@@ -15,7 +15,7 @@ export default function TestConnection() {
       const supabase = createClient()
       
       // Test basic connection
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('games')
         .select('count')
         .limit(1)
@@ -26,9 +26,9 @@ export default function TestConnection() {
 
       setStatus('success')
       setMessage('✅ Connessione a Supabase riuscita!')
-    } catch (error: any) {
+    } catch (error: unknown) {
       setStatus('error')
-      setMessage(`❌ Errore connessione: ${error.message}`)
+      setMessage(`❌ Errore connessione: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`)
     }
   }
 

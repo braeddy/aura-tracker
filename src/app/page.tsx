@@ -78,7 +78,7 @@ export default function HomePage() {
             <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-yellow-400 mb-4 animate-fade-in">
               AuraTracker
             </h1>
-            <p className="text-xl text-gray-300 mb-2 animate-fade-in-delay">Traccia l'aura dei tuoi amici</p>
+            <p className="text-xl text-gray-300 mb-2 animate-fade-in-delay">Traccia l&apos;aura dei tuoi amici</p>
             <p className="text-sm text-gray-400 animate-fade-in-delay-2">✨ Il modo più divertente per competere ✨</p>
           </div>
 

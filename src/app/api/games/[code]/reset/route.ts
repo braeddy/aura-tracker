@@ -3,11 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
     const supabase = await createClient()
-    const { code } = params
+    const { code } = await params
 
     // Verifica se la partita esiste
     const { data: game, error: gameError } = await supabase
