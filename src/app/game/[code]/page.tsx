@@ -534,7 +534,7 @@ export default function GamePage() {
                           />
                           <input
                             type="text"
-                            placeholder="💭 Motivo (opzionale)..."
+                            placeholder="💭 Motivo (opzionale per tutte le azioni)..."
                             value={playerModalMotivo}
                             onChange={(e) => setPlayerModalMotivo(e.target.value)}
                             className="w-full px-6 py-4 bg-white/20 backdrop-blur border border-white/30 rounded-2xl text-white placeholder-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-center text-lg"
@@ -556,13 +556,16 @@ export default function GamePage() {
 
                       {/* Quick Actions */}
                       <div>
-                        <div className="text-center text-xl font-bold text-white mb-6">
+                        <div className="text-center text-xl font-bold text-white mb-4">
                           ⚡ Modifiche Rapide (K)
+                        </div>
+                        <div className="text-center text-sm text-gray-300 mb-6">
+                          💡 Il motivo inserito sopra verrà applicato a tutte le azioni
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <button
                             onClick={() => {
-                              updateAura(selectedPlayer.id, 1000, 'Aura +1K')
+                              updateAura(selectedPlayer.id, 1000, playerModalMotivo || 'Aura +1K')
                               setSelectedPlayer(null)
                             }}
                             className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
@@ -571,7 +574,7 @@ export default function GamePage() {
                           </button>
                           <button
                             onClick={() => {
-                              updateAura(selectedPlayer.id, 5000, 'Aura +5K')
+                              updateAura(selectedPlayer.id, 5000, playerModalMotivo || 'Aura +5K')
                               setSelectedPlayer(null)
                             }}
                             className="bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
@@ -580,7 +583,7 @@ export default function GamePage() {
                           </button>
                           <button
                             onClick={() => {
-                              updateAura(selectedPlayer.id, -1000, 'Aura -1K')
+                              updateAura(selectedPlayer.id, -1000, playerModalMotivo || 'Aura -1K')
                               setSelectedPlayer(null)
                             }}
                             className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
@@ -589,7 +592,7 @@ export default function GamePage() {
                           </button>
                           <button
                             onClick={() => {
-                              updateAura(selectedPlayer.id, -5000, 'Aura -5K')
+                              updateAura(selectedPlayer.id, -5000, playerModalMotivo || 'Aura -5K')
                               setSelectedPlayer(null)
                             }}
                             className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
@@ -607,7 +610,7 @@ export default function GamePage() {
                         <div className="grid grid-cols-2 gap-4">
                           <button
                             onClick={() => {
-                              updateAura(selectedPlayer.id, 100000, 'Aura +100K')
+                              updateAura(selectedPlayer.id, 100000, playerModalMotivo || 'Aura +100K')
                               setSelectedPlayer(null)
                             }}
                             className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
@@ -616,7 +619,7 @@ export default function GamePage() {
                           </button>
                           <button
                             onClick={() => {
-                              updateAura(selectedPlayer.id, 1000000, 'Aura +1M')
+                              updateAura(selectedPlayer.id, 1000000, playerModalMotivo || 'Aura +1M')
                               setSelectedPlayer(null)
                             }}
                             className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
@@ -625,7 +628,7 @@ export default function GamePage() {
                           </button>
                           <button
                             onClick={() => {
-                              updateAura(selectedPlayer.id, -100000, 'Aura -100K')
+                              updateAura(selectedPlayer.id, -100000, playerModalMotivo || 'Aura -100K')
                               setSelectedPlayer(null)
                             }}
                             className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
@@ -634,7 +637,7 @@ export default function GamePage() {
                           </button>
                           <button
                             onClick={() => {
-                              updateAura(selectedPlayer.id, -1000000, 'Aura -1M')
+                              updateAura(selectedPlayer.id, -1000000, playerModalMotivo || 'Aura -1M')
                               setSelectedPlayer(null)
                             }}
                             className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
@@ -856,7 +859,15 @@ export default function GamePage() {
                             value={customAura[player.id] || ''}
                             onChange={(e) => setCustomAura(prev => ({ ...prev, [player.id]: e.target.value }))}
                             onClick={(e) => e.stopPropagation()}
-                            className="w-full px-4 py-3 bg-white/20 backdrop-blur border border-white/30 rounded-xl text-white placeholder-gray-300 text-center mb-4 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                            className="w-full px-4 py-3 bg-white/20 backdrop-blur border border-white/30 rounded-xl text-white placeholder-gray-300 text-center mb-3 sm:mb-4 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                          />
+                          <input
+                            type="text"
+                            placeholder="💭 Motivo (opzionale per tutte le azioni)..."
+                            value={customMotivo[player.id] || ''}
+                            onChange={(e) => setCustomMotivo(prev => ({ ...prev, [player.id]: e.target.value }))}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/20 backdrop-blur border border-white/30 rounded-xl text-white placeholder-gray-300 text-center mb-3 sm:mb-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
                           />
                           <button
                             onClick={(e) => {
@@ -870,26 +881,19 @@ export default function GamePage() {
                           </button>
                         </div>
 
-                        {/* Optional Reason */}
-                        <input
-                          type="text"
-                          placeholder="💭 Motivo (opzionale)..."
-                          value={customMotivo[player.id] || ''}
-                          onChange={(e) => setCustomMotivo(prev => ({ ...prev, [player.id]: e.target.value }))}
-                          onClick={(e) => e.stopPropagation()}
-                          className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/20 backdrop-blur border border-white/30 rounded-xl text-white placeholder-gray-300 text-center focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
-                        />
-
                         {/* Quick Modifications (K) */}
                         <div>
-                          <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-2 sm:mb-3">
+                          <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-1 sm:mb-2">
                             ⚡ Modifiche Rapide (K)
+                          </div>
+                          <div className="text-center text-xs text-gray-400 mb-2 sm:mb-3">
+                            💡 Usa il motivo sopra per tutte le azioni
                           </div>
                           <div className="grid grid-cols-2 gap-2 sm:gap-3">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                updateAura(player.id, 1000, 'Aura +1K')
+                                updateAura(player.id, 1000, customMotivo[player.id] || 'Aura +1K')
                               }}
                               className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
@@ -898,7 +902,7 @@ export default function GamePage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                updateAura(player.id, 5000, 'Aura +5K')
+                                updateAura(player.id, 5000, customMotivo[player.id] || 'Aura +5K')
                               }}
                               className="bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
@@ -907,7 +911,7 @@ export default function GamePage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                updateAura(player.id, -1000, 'Aura -1K')
+                                updateAura(player.id, -1000, customMotivo[player.id] || 'Aura -1K')
                               }}
                               className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
@@ -916,7 +920,7 @@ export default function GamePage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                updateAura(player.id, -5000, 'Aura -5K')
+                                updateAura(player.id, -5000, customMotivo[player.id] || 'Aura -5K')
                               }}
                               className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
@@ -934,7 +938,7 @@ export default function GamePage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                updateAura(player.id, 100000, 'Aura +100K')
+                                updateAura(player.id, 100000, customMotivo[player.id] || 'Aura +100K')
                               }}
                               className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
@@ -943,7 +947,7 @@ export default function GamePage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                updateAura(player.id, 1000000, 'Aura +1M')
+                                updateAura(player.id, 1000000, customMotivo[player.id] || 'Aura +1M')
                               }}
                               className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
@@ -952,7 +956,7 @@ export default function GamePage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                updateAura(player.id, -100000, 'Aura -100K')
+                                updateAura(player.id, -100000, customMotivo[player.id] || 'Aura -100K')
                               }}
                               className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
@@ -961,7 +965,7 @@ export default function GamePage() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                updateAura(player.id, -1000000, 'Aura -1M')
+                                updateAura(player.id, -1000000, customMotivo[player.id] || 'Aura -1M')
                               }}
                               className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
                             >
