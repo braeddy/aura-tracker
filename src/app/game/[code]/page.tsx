@@ -518,7 +518,7 @@ export default function GamePage() {
                         {actions
                           .filter(action => action.player_id === selectedPlayer.id)
                           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                          .map((action, index) => (
+                          .map((action) => (
                             <div key={action.id} className="flex items-center justify-between p-4 bg-white/10 backdrop-blur rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300">
                               <div className="flex items-center gap-3">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
