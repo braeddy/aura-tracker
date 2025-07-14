@@ -46,7 +46,7 @@ export async function GET(
       )
     }
 
-    // Ottieni le azioni recenti
+    // Ottieni le azioni recenti con informazioni su chi le ha effettuate
     const { data: actions, error: actionsError } = await supabase
       .from('actions')
       .select(`
@@ -62,6 +62,14 @@ export async function GET(
     if (actionsError) {
       console.error('Errore caricamento azioni:', actionsError)
     }
+
+    // Log per debug - controlla se le azioni hanno le info dell'utente
+    console.log('Actions from DB:', actions?.map(a => ({
+      id: a.id,
+      description: a.description,
+      performed_by_username: a.performed_by_username,
+      performed_by_user_id: a.performed_by_user_id
+    })))
 
     return NextResponse.json({
       game,

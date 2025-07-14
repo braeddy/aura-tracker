@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { UserPlus, BarChart3, TrendingUp, TrendingDown, Sparkles, Heart, Zap, Calendar, Activity, Clock, Trophy, UserX, ArrowLeft, Trash2 } from 'lucide-react'
+import { UserPlus, BarChart3, TrendingUp, TrendingDown, Sparkles, Heart, Zap, Calendar, Activity, Clock, Trophy, UserX, ArrowLeft, Trash2, LogOut, User } from 'lucide-react'
+import LoginModal from '@/components/LoginModal'
 
 interface Player {
   id: string
@@ -10,6 +11,7 @@ interface Player {
   aura_points: number
   avatar?: string
   created_at: string
+  user_id?: string
 }
 
 interface Action {
@@ -18,6 +20,8 @@ interface Action {
   points: number
   description: string
   created_at: string
+  performed_by_user_id?: string
+  performed_by_username?: string
 }
 
 interface Game {
@@ -42,15 +46,24 @@ export default function GamePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('home')
-  const [newPlayerName, setNewPlayerName] = useState('')
-  const [addingPlayer, setAddingPlayer] = useState(false)
+  const [joiningGame, setJoiningGame] = useState(false)
   const [customAura, setCustomAura] = useState<{[key: string]: string}>({})
   const [customMotivo, setCustomMotivo] = useState<{[key: string]: string}>({})
+
+  // Stati per il sistema di login
+  const [currentUser, setCurrentUser] = useState<{
+    id: string
+    username: string
+    displayName: string
+    isGuest: boolean
+  } | null>(null)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [authSystemReady, setAuthSystemReady] = useState<boolean | null>(null)
 
   // Stato per le notifiche integrate
   const [notification, setNotification] = useState<{
     show: boolean
-    type: 'reset' | 'delete' | 'deletePlayer' | 'deleteAction' | null
+    type: 'reset' | 'delete' | 'deletePlayer' | 'deleteAction' | 'logout' | null
     message: string
     onConfirm: () => void
   }>({
@@ -64,6 +77,12 @@ export default function GamePage() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
   const [playerModalCustomAura, setPlayerModalCustomAura] = useState('')
   const [playerModalMotivo, setPlayerModalMotivo] = useState('')
+
+  // Stati per il modal delle azioni
+  const [selectedAction, setSelectedAction] = useState<Action | null>(null)
+  const [actionComments, setActionComments] = useState<any[]>([])
+  const [newComment, setNewComment] = useState('')
+  const [loadingComments, setLoadingComments] = useState(false)
 
   // Funzione per formattare i numeri in K, M, B
   const formatAuraValue = (value: number): string => {
@@ -125,6 +144,14 @@ export default function GamePage() {
       
       const data = await response.json()
       setGameData(data)
+      
+      // Log per debug - controlla se le azioni hanno le info dell'utente
+      console.log('Frontend received actions:', data.actions?.map((a: any) => ({
+        id: a.id,
+        description: a.description,
+        performed_by_username: a.performed_by_username,
+        performed_by_user_id: a.performed_by_user_id
+      })))
     } catch (error) {
       console.error('Errore nel fetch dei dati:', error)
       setError('Errore di connessione')
@@ -139,47 +166,162 @@ export default function GamePage() {
     }
   }, [code, fetchGameData])
 
-  const addPlayer = async () => {
-    if (!newPlayerName.trim()) return
+  // Controlla se il sistema di autenticazione è configurato
+  useEffect(() => {
+    const checkAuthSystem = async () => {
+      try {
+        const response = await fetch('/api/auth/check')
+        const data = await response.json()
+        setAuthSystemReady(data.hasAuth)
+        
+        if (!data.hasAuth) {
+          console.warn('Sistema di autenticazione non configurato:', data.errors)
+        }
+      } catch (error) {
+        console.error('Errore controllo sistema auth:', error)
+        setAuthSystemReady(false)
+      }
+    }
+    
+    checkAuthSystem()
+  }, [])
 
-    setAddingPlayer(true)
+  // Controllo se l'utente è loggato
+  useEffect(() => {
+    if (authSystemReady === null) return // Aspetta il controllo del sistema
+    
+    const userSession = localStorage.getItem('aura_user_session')
+    if (userSession) {
+      try {
+        const userData = JSON.parse(userSession)
+        const user = {
+          id: userData.id || userData.username,
+          username: userData.username,
+          displayName: userData.displayName,
+          isGuest: userData.isGuest || userData.username?.startsWith('Guest_') || false
+        }
+        setCurrentUser(user)
+      } catch (error) {
+        console.error('Errore nel parsing della sessione utente:', error)
+        localStorage.removeItem('aura_user_session')
+        setShowLoginModal(true)
+      }
+    } else {
+      setShowLoginModal(true)
+    }
+  }, [authSystemReady])
+
+  // Funzione per gestire il login
+  const handleLogin = (userData: { username: string; displayName: string; isNewUser: boolean; id?: string }) => {
+    const isGuest = userData.username.startsWith('Guest_')
+    const user = {
+      id: userData.id || userData.username, // Usa l'ID vero se disponibile, altrimenti username
+      username: userData.username,
+      displayName: userData.displayName,
+      isGuest
+    }
+    setCurrentUser(user)
+    localStorage.setItem('aura_user_session', JSON.stringify(user))
+    setShowLoginModal(false)
+  }
+
+  // Funzione per il logout
+  const handleLogout = () => {
+    setNotification({
+      show: true,
+      type: 'logout',
+      message: 'Sei sicuro di voler uscire dal tuo account? Dovrai effettuare nuovamente il login per accedere alla partita.',
+      onConfirm: async () => {
+        try {
+          // Chiama API per invalidare sessione server-side
+          if (currentUser && !currentUser.id.startsWith('Guest_')) {
+            await fetch('/api/auth/logout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                gameCode: code,
+                userId: currentUser.id 
+              })
+            })
+          }
+        } catch (error) {
+          console.error('Errore durante logout:', error)
+        } finally {
+          // Pulisci stato locale indipendentemente dal risultato API
+          setCurrentUser(null)
+          localStorage.removeItem('aura_user_session')
+          setShowLoginModal(true)
+          setNotification({ show: false, type: null, message: '', onConfirm: () => {} })
+        }
+      }
+    })
+  }
+
+  const joinGame = async () => {
+    if (!currentUser || currentUser.isGuest) return
+
+    console.log('Trying to join game with user:', currentUser)
+    setJoiningGame(true)
     try {
       const response = await fetch(`/api/games/${code}/players`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: newPlayerName.trim() }),
+        body: JSON.stringify({ userId: currentUser.id }),
       })
 
+      const data = await response.json()
+      console.log('Join game response:', { response: response.status, data })
+      
       if (response.ok) {
-        setNewPlayerName('')
         fetchGameData()
+      } else {
+        console.error('Join game error:', data.error)
+        alert(data.error || 'Errore durante l\'iscrizione al gioco')
       }
     } catch (error) {
-      console.error('Errore nell\'aggiunta del giocatore:', error)
+      console.error('Errore nell\'iscrizione al gioco:', error)
+      alert('Errore di connessione')
     } finally {
-      setAddingPlayer(false)
+      setJoiningGame(false)
     }
   }
 
   const updateAura = async (playerId: string, points: number, description: string) => {
+    if (!currentUser) return
+    
+    // Verifica che l'utente non sia un ospite
+    if (currentUser.isGuest) {
+      alert('Gli ospiti non possono effettuare azioni. Registrati per partecipare attivamente al gioco.')
+      return
+    }
+
     try {
       const response = await fetch(`/api/games/${code}/players/${playerId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ points, description })
+        body: JSON.stringify({ 
+          points, 
+          description,
+          userId: currentUser.id
+        })
       })
 
+      const data = await response.json()
+      
       if (response.ok) {
         setCustomAura({...customAura, [playerId]: ''})
         setCustomMotivo({...customMotivo, [playerId]: ''})
         fetchGameData()
+      } else {
+        alert(data.error || 'Errore nell\'aggiornamento aura')
       }
     } catch (error) {
       console.error('Errore nell\'aggiornamento aura:', error)
+      alert('Errore di connessione')
     }
   }
 
@@ -287,6 +429,57 @@ export default function GamePage() {
     })
   }
 
+  // Funzioni per gestire i commenti delle azioni
+  const fetchActionComments = async (actionId: string) => {
+    setLoadingComments(true)
+    try {
+      const response = await fetch(`/api/games/${code}/actions/${actionId}/comments`)
+      if (response.ok) {
+        const data = await response.json()
+        setActionComments(data.comments || [])
+      } else {
+        console.error('Errore nel caricamento commenti')
+      }
+    } catch (error) {
+      console.error('Errore nel fetch commenti:', error)
+    } finally {
+      setLoadingComments(false)
+    }
+  }
+
+  const addComment = async (actionId: string, comment: string) => {
+    if (!comment.trim() || !currentUser) return
+
+    try {
+      const response = await fetch(`/api/games/${code}/actions/${actionId}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          comment: comment.trim(),
+          userId: currentUser.id,
+          username: currentUser.displayName
+        })
+      })
+
+      if (response.ok) {
+        setNewComment('')
+        await fetchActionComments(actionId) // Ricarica i commenti
+      } else {
+        alert('Errore nell\'aggiunta del commento')
+      }
+    } catch (error) {
+      console.error('Errore nell\'aggiunta commento:', error)
+      alert('Errore di connessione')
+    }
+  }
+
+  const openActionModal = (action: Action) => {
+    setSelectedAction(action)
+    fetchActionComments(action.id)
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -317,20 +510,31 @@ export default function GamePage() {
 
   return (
     <>
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLogin={handleLogin}
+        gameCode={code}
+      />
+
       {/* Notifica Integrata - Fuori dal container principale */}
       {notification.show && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl max-w-md w-full p-8 transform transition-all border border-white/20">
             <div className="text-center mb-6">
               <div className="text-8xl mb-4">
-                {(notification.type === 'delete' || notification.type === 'deletePlayer' || notification.type === 'deleteAction') ? '🗑️' : '🔄'}
+                {(notification.type === 'delete' || notification.type === 'deletePlayer' || notification.type === 'deleteAction') ? '🗑️' : 
+                 notification.type === 'logout' ? '�' : '�🔄'}
               </div>
               <h3 className={`text-3xl font-bold mb-4 ${
-                (notification.type === 'delete' || notification.type === 'deletePlayer' || notification.type === 'deleteAction') ? 'text-red-400' : 'text-orange-400'
+                (notification.type === 'delete' || notification.type === 'deletePlayer' || notification.type === 'deleteAction') ? 'text-red-400' : 
+                notification.type === 'logout' ? 'text-blue-400' : 'text-orange-400'
               }`}>
                 {notification.type === 'delete' ? 'Elimina Partita' : 
                  notification.type === 'deletePlayer' ? 'Elimina Giocatore' :
-                 notification.type === 'deleteAction' ? 'Elimina Azione' : 'Reset Partita'}
+                 notification.type === 'deleteAction' ? 'Elimina Azione' :
+                 notification.type === 'logout' ? 'Logout Account' : 'Reset Partita'}
               </h3>
               <p className="text-gray-300 text-lg leading-relaxed">
                 {notification.message}
@@ -349,12 +553,15 @@ export default function GamePage() {
                 className={`flex-1 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 ${
                   (notification.type === 'delete' || notification.type === 'deletePlayer' || notification.type === 'deleteAction')
                     ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700' 
+                    : notification.type === 'logout'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700'
                     : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600'
                 }`}
               >
                 {notification.type === 'delete' ? '🗑️ Elimina Partita' : 
                  notification.type === 'deletePlayer' ? '🗑️ Elimina Giocatore' :
-                 notification.type === 'deleteAction' ? '🗑️ Elimina Azione' : '🔄 Reset'}
+                 notification.type === 'deleteAction' ? '🗑️ Elimina Azione' :
+                 notification.type === 'logout' ? '👋 Logout' : '🔄 Reset'}
               </button>
             </div>
           </div>
@@ -519,7 +726,12 @@ export default function GamePage() {
                           .filter(action => action.player_id === selectedPlayer.id)
                           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                           .map((action) => (
-                            <div key={action.id} className="flex items-center justify-between p-4 bg-white/10 backdrop-blur rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300">
+                            <div 
+                              key={action.id} 
+                              className="flex items-center justify-between p-4 bg-white/10 backdrop-blur rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300 cursor-pointer transform hover:scale-[1.02]"
+                              onClick={() => openActionModal(action)}
+                              title="Clicca per vedere dettagli e commenti"
+                            >
                               <div className="flex items-center gap-3">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                                   action.points > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
@@ -528,6 +740,18 @@ export default function GamePage() {
                                 </div>
                                 <div>
                                   <div className="font-bold text-white">{action.description}</div>
+                                  {action.performed_by_username && (
+                                    <div className="text-xs text-blue-300 flex items-center gap-1 mt-1">
+                                      <User className="w-3 h-3" />
+                                      Aggiunto da {action.performed_by_username}
+                                    </div>
+                                  )}
+                                  {!action.performed_by_username && (
+                                    <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                                      <User className="w-3 h-3" />
+                                      Azione automatica
+                                    </div>
+                                  )}
                                   <div className="text-xs text-gray-400">
                                     {new Date(action.created_at).toLocaleString('it-IT')}
                                   </div>
@@ -540,7 +764,10 @@ export default function GamePage() {
                                   {action.points > 0 ? '+' : ''}{formatAuraValue(action.points)}
                                 </div>
                                 <button
-                                  onClick={() => deleteAction(action.id, action.description)}
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    deleteAction(action.id, action.description)
+                                  }}
                                   className="p-1 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors"
                                   title="Elimina azione"
                                 >
@@ -701,7 +928,144 @@ export default function GamePage() {
         </div>
       )}
 
-      <div className={`min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden ${notification.show || selectedPlayer ? 'blur-sm' : ''}`}>
+      {/* Modal Dettagli Azione */}
+      {selectedAction && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-white/20 flex flex-col">
+            {/* Header Fisso */}
+            <div className="flex-shrink-0 bg-white/10 backdrop-blur border-b border-white/20 p-6 rounded-t-3xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                    selectedAction.points > 0 
+                      ? 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 text-green-300' 
+                      : 'bg-gradient-to-r from-red-500/30 to-pink-500/30 text-red-300'
+                  } border border-white/30`}>
+                    {selectedAction.points > 0 ? <TrendingUp className="w-6 h-6" /> : <TrendingDown className="w-6 h-6" />}
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">
+                      {players.find(p => p.id === selectedAction.player_id)?.name}
+                    </h2>
+                    <div className="text-sm text-gray-300">
+                      {formatAuraValue(selectedAction.points)} punti aura
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedAction(null)}
+                  className="text-gray-400 hover:text-white transition-colors text-3xl transform hover:scale-110 duration-300"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Contenuto Scrollabile */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Dettagli Azione */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-6 border border-white/20">
+                <h3 className="text-xl font-bold text-white mb-4">📋 Dettagli Azione</h3>
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-gray-300 text-sm">Descrizione:</span>
+                    <div className="text-white font-medium">{selectedAction.description}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-300 text-sm">Punti aura:</span>
+                    <div className={`font-bold text-lg ${selectedAction.points > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {selectedAction.points > 0 ? '+' : ''}{formatAuraValue(selectedAction.points)}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-gray-300 text-sm">Data:</span>
+                    <div className="text-white">{new Date(selectedAction.created_at).toLocaleString('it-IT')}</div>
+                  </div>
+                  {selectedAction.performed_by_username && (
+                    <div>
+                      <span className="text-gray-300 text-sm">Aggiunto da:</span>
+                      <div className="text-blue-300 font-medium">{selectedAction.performed_by_username}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Sezione Commenti */}
+              <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-6 border border-white/20">
+                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  💬 Commenti
+                  <span className="text-sm text-gray-400">({actionComments.length})</span>
+                </h3>
+
+                {/* Lista Commenti */}
+                <div className="space-y-4 max-h-60 overflow-y-auto mb-6">
+                  {loadingComments ? (
+                    <div className="text-center py-4">
+                      <div className="text-gray-400">Caricamento commenti...</div>
+                    </div>
+                  ) : actionComments.length === 0 ? (
+                    <div className="text-center py-6">
+                      <div className="text-4xl mb-2">💬</div>
+                      <div className="text-gray-400">Nessun commento ancora</div>
+                      <div className="text-sm text-gray-500">Sii il primo a commentare!</div>
+                    </div>
+                  ) : (
+                    actionComments.map((comment) => (
+                      <div key={comment.id} className="bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/20">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center font-bold text-sm text-white">
+                            {comment.username.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-medium text-white">{comment.username}</span>
+                              <span className="text-xs text-gray-400">
+                                {new Date(comment.created_at).toLocaleDateString('it-IT')} alle {new Date(comment.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <div className="text-gray-200">{comment.comment}</div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Aggiungi Commento */}
+                {currentUser && !currentUser.isGuest ? (
+                  <div className="space-y-3">
+                    <textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Scrivi un commento..."
+                      className="w-full px-4 py-3 bg-white/20 backdrop-blur border border-white/30 rounded-2xl text-white placeholder-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 resize-none"
+                      rows={3}
+                    />
+                    <button
+                      onClick={() => addComment(selectedAction.id, newComment)}
+                      disabled={!newComment.trim()}
+                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-3 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg"
+                    >
+                      💬 Aggiungi Commento
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-amber-500/20 backdrop-blur rounded-2xl p-4 border border-amber-500/30 text-center">
+                    <div className="text-amber-300 font-medium mb-1">
+                      👻 Accedi per commentare
+                    </div>
+                    <div className="text-amber-200 text-sm">
+                      Solo gli utenti registrati possono aggiungere commenti
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={`min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 relative overflow-hidden ${notification.show || selectedPlayer || selectedAction ? 'blur-sm' : ''}`}>
         {/* Background Effects */}
         <div className="absolute inset-0">
           <div className="absolute top-20 left-20 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-blob"></div>
@@ -732,12 +1096,53 @@ export default function GamePage() {
             <button
               onClick={() => router.push('/')}
               className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1 sm:py-2 bg-white/20 hover:bg-white/30 backdrop-blur border border-white/30 rounded-lg sm:rounded-xl text-white transition-all duration-300 transform hover:scale-105 shadow-lg"
-              title="Esci dalla partita"
+              title="Torna alla home"
             >
               <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="text-xs sm:text-sm font-medium hidden sm:inline">Esci</span>
+              <span className="text-xs sm:text-sm font-medium hidden sm:inline">Home</span>
             </button>
           </div>
+
+          {/* User Info - Top Right */}
+          {currentUser && (
+            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20">
+              <div className="flex items-center gap-2">
+                <div 
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-1 sm:py-2 bg-white/20 backdrop-blur border border-white/30 rounded-lg sm:rounded-xl text-white shadow-lg transition-all duration-300 ${
+                    players.some(p => p.user_id === currentUser.id || p.name === currentUser.displayName) 
+                      ? 'cursor-pointer hover:bg-white/30 hover:scale-105' 
+                      : 'cursor-default'
+                  }`}
+                  onClick={() => {
+                    const userPlayer = players.find(p => p.user_id === currentUser.id || p.name === currentUser.displayName);
+                    if (userPlayer) {
+                      setSelectedPlayer(userPlayer);
+                    }
+                  }}
+                  title={players.some(p => p.user_id === currentUser.id || p.name === currentUser.displayName) ? "Clicca per vedere i tuoi dettagli" : ""}
+                >
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm">
+                    {currentUser.displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-xs sm:text-sm font-medium hidden sm:inline">
+                    {currentUser.displayName}
+                  </span>
+                  {players.some(p => p.user_id === currentUser.id || p.name === currentUser.displayName) && (
+                    <div className="text-xs text-blue-300 hidden sm:block">
+                      🔍
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-1 sm:p-2 bg-white/20 hover:bg-red-500/30 backdrop-blur border border-white/30 rounded-lg sm:rounded-xl text-white transition-all duration-300 transform hover:scale-105 shadow-lg"
+                  title="Logout dal tuo account"
+                >
+                  <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 text-center">
             <div className="flex justify-center mb-2 sm:mb-4">
@@ -809,53 +1214,103 @@ export default function GamePage() {
         <div className="relative z-10 max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
           {activeTab === 'home' && (
             <div className="grid lg:grid-cols-3 gap-4 sm:gap-8">
-              {/* Left Side - Add Player and Players */}
+              {/* Left Side - Join Game and Players */}
               <div className="lg:col-span-2 space-y-4 sm:space-y-8">
-                {/* Add Player Section */}
-                <div className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-2xl p-4 sm:p-8 hover:bg-white/15 transition-all duration-300">
-                  <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                    <div className="bg-gradient-to-r from-green-500 to-teal-500 p-1.5 sm:p-2 rounded-lg sm:rounded-xl">
-                      <UserPlus className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
+                {/* Warning per sistema di autenticazione non configurato */}
+                {authSystemReady === false && (
+                  <div className="bg-red-500/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-red-500/20 shadow-2xl p-4 sm:p-8 mb-4 sm:mb-8">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                      <div className="bg-gradient-to-r from-red-500 to-pink-500 p-1.5 sm:p-2 rounded-lg sm:rounded-xl">
+                        <UserX className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
+                      </div>
+                      <h2 className="text-lg sm:text-2xl font-bold text-white">
+                        Sistema di Autenticazione Non Configurato
+                      </h2>
                     </div>
-                    <h2 className="text-lg sm:text-2xl font-bold text-white">
-                      Aggiungi Giocatore
-                    </h2>
+                    <div className="space-y-3 sm:space-y-4 text-center">
+                      <div className="text-red-300 text-sm sm:text-base">
+                        ⚠️ Il database non è ancora configurato per il sistema di login avanzato.
+                      </div>
+                      <div className="text-gray-300 text-xs sm:text-sm">
+                        Esegui lo script SQL dalla cartella database/schema-with-auth.sql su Supabase per abilitare il sistema di registrazione e login.
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-3 sm:space-y-4">
-                    <input
-                      type="text"
-                      placeholder="Nome del giocatore..."
-                      value={newPlayerName}
-                      onChange={(e) => setNewPlayerName(e.target.value)}
-                      className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-white/20 backdrop-blur border border-white/30 rounded-xl sm:rounded-2xl text-white placeholder-gray-300 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-300 text-center text-base sm:text-lg"
-                      onKeyPress={(e) => e.key === 'Enter' && addPlayer()}
-                    />
-                    <button
-                      onClick={addPlayer}
-                      disabled={!newPlayerName.trim() || addingPlayer}
-                      className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg text-base sm:text-lg"
-                    >
-                      {addingPlayer ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white inline-block mr-2"></div>
-                          Aggiungendo...
-                        </>
-                      ) : (
-                        <>
-                          ⭐ Aggiungi al Gioco
-                        </>
-                      )}
-                    </button>
+                )}
+
+                {/* Join Game Section - Solo per utenti registrati */}
+                {currentUser && !currentUser.isGuest && !players.some(p => 
+                  p.user_id === currentUser.id || p.name === currentUser.displayName
+                ) && (
+                  <div className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-2xl p-4 sm:p-8 hover:bg-white/15 transition-all duration-300">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                      <div className="bg-gradient-to-r from-green-500 to-teal-500 p-1.5 sm:p-2 rounded-lg sm:rounded-xl">
+                        <UserPlus className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
+                      </div>
+                      <h2 className="text-lg sm:text-2xl font-bold text-white">
+                        Unisciti alla Partita
+                      </h2>
+                    </div>
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="text-center text-gray-300 text-sm sm:text-base">
+                        Ciao <span className="font-bold text-white">{currentUser.displayName}</span>!<br />
+                        Vuoi unirti a questa partita come giocatore?
+                      </div>
+                      <button
+                        onClick={joinGame}
+                        disabled={joiningGame}
+                        className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100 shadow-lg text-base sm:text-lg"
+                      >
+                        {joiningGame ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-white inline-block mr-2"></div>
+                            Unendoti alla partita...
+                          </>
+                        ) : (
+                          <>
+                            ⭐ Unisciti al Gioco
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Messaggio per gli ospiti */}
+                {currentUser && currentUser.isGuest && (
+                  <div className="bg-amber-500/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-amber-500/20 shadow-2xl p-4 sm:p-8">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                      <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-1.5 sm:p-2 rounded-lg sm:rounded-xl">
+                        <User className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
+                      </div>
+                      <h2 className="text-lg sm:text-2xl font-bold text-white">
+                        Modalità Ospite
+                      </h2>
+                    </div>
+                    <div className="space-y-3 sm:space-y-4 text-center">
+                      <div className="text-amber-300 text-sm sm:text-base">
+                        👻 Stai visualizzando come ospite. Puoi vedere tutti i dati della partita ma non puoi effettuare azioni.
+                      </div>
+                      <div className="text-gray-300 text-xs sm:text-sm">
+                        Per partecipare attivamente, registrati o accedi con il tuo account.
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Players Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   {players.sort((a, b) => b.aura_points - a.aura_points).map((player, index) => (
                     <div 
                       key={player.id} 
-                      className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-xl p-4 sm:p-6 cursor-pointer hover:bg-white/20 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl"
-                      onClick={() => setSelectedPlayer(player)}
+                      className={`bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-xl p-4 sm:p-6 transition-all duration-300 transform hover:scale-105 hover:shadow-2xl ${
+                        currentUser && !currentUser.isGuest ? 'cursor-pointer hover:bg-white/20' : 'cursor-default'
+                      }`}
+                      onClick={() => {
+                        if (currentUser && !currentUser.isGuest) {
+                          setSelectedPlayer(player)
+                        }
+                      }}
                     >
                       {/* Player Header */}
                       <div className="flex items-center justify-between mb-4 sm:mb-6">
@@ -893,133 +1348,146 @@ export default function GamePage() {
                       </div>
 
                       {/* Aura Controls */}
-                      <div className="space-y-4 sm:space-y-6">
-                        {/* Custom Aura Section */}
-                        <div className="bg-white/10 backdrop-blur rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/20">
-                          <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-3 sm:mb-4">
-                            🎯 Aura Personalizzata
+                      {currentUser && currentUser.isGuest ? (
+                        /* Messaggio per ospiti */
+                        <div className="bg-amber-500/20 backdrop-blur rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-amber-500/30 text-center">
+                          <div className="text-amber-300 text-sm sm:text-base font-medium mb-2">
+                            👻 Modalità Ospite
                           </div>
-                          <input
-                            type="number"
-                            placeholder="Inserisci quantità aura..."
-                            value={customAura[player.id] || ''}
-                            onChange={(e) => setCustomAura(prev => ({ ...prev, [player.id]: e.target.value }))}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-full px-4 py-3 bg-white/20 backdrop-blur border border-white/30 rounded-xl text-white placeholder-gray-300 text-center mb-3 sm:mb-4 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
-                          />
-                          <input
-                            type="text"
-                            placeholder="💭 Motivo (opzionale per tutte le azioni)..."
-                            value={customMotivo[player.id] || ''}
-                            onChange={(e) => setCustomMotivo(prev => ({ ...prev, [player.id]: e.target.value }))}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/20 backdrop-blur border border-white/30 rounded-xl text-white placeholder-gray-300 text-center mb-3 sm:mb-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
-                          />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              updateAura(player.id, parseInt(customAura[player.id]) || 0, customMotivo[player.id] || 'Aura personalizzata')
-                            }}
-                            disabled={!customAura[player.id]}
-                            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100 text-sm sm:text-base"
-                          >
-                            ⚡ Applica Aura
-                          </button>
+                          <div className="text-amber-200 text-xs sm:text-sm">
+                            Registrati per effettuare azioni sui giocatori
+                          </div>
                         </div>
+                      ) : (
+                        /* Controlli completi per utenti registrati */
+                        <div className="space-y-4 sm:space-y-6">
+                          {/* Custom Aura Section */}
+                          <div className="bg-white/10 backdrop-blur rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/20">
+                            <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-3 sm:mb-4">
+                              🎯 Aura Personalizzata
+                            </div>
+                            <input
+                              type="number"
+                              placeholder="Inserisci quantità aura..."
+                              value={customAura[player.id] || ''}
+                              onChange={(e) => setCustomAura(prev => ({ ...prev, [player.id]: e.target.value }))}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-full px-4 py-3 bg-white/20 backdrop-blur border border-white/30 rounded-xl text-white placeholder-gray-300 text-center mb-3 sm:mb-4 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
+                            />
+                            <input
+                              type="text"
+                              placeholder="💭 Motivo (opzionale per tutte le azioni)..."
+                              value={customMotivo[player.id] || ''}
+                              onChange={(e) => setCustomMotivo(prev => ({ ...prev, [player.id]: e.target.value }))}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/20 backdrop-blur border border-white/30 rounded-xl text-white placeholder-gray-300 text-center mb-3 sm:mb-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                updateAura(player.id, parseInt(customAura[player.id]) || 0, customMotivo[player.id] || 'Aura personalizzata')
+                              }}
+                              disabled={!customAura[player.id]}
+                              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100 text-sm sm:text-base"
+                            >
+                              ⚡ Applica Aura
+                            </button>
+                          </div>
 
-                        {/* Quick Modifications (K) */}
-                        <div>
-                          <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-1 sm:mb-2">
-                            ⚡ Modifiche Rapide (K)
+                          {/* Quick Modifications (K) */}
+                          <div>
+                            <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-1 sm:mb-2">
+                              ⚡ Modifiche Rapide (K)
+                            </div>
+                            <div className="text-center text-xs text-gray-400 mb-2 sm:mb-3">
+                              💡 Usa il motivo sopra per tutte le azioni
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateAura(player.id, 1000, customMotivo[player.id] || 'Aura +1K')
+                                }}
+                                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
+                              >
+                                +1K
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateAura(player.id, 5000, customMotivo[player.id] || 'Aura +5K')
+                                }}
+                                className="bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
+                              >
+                                +5K
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateAura(player.id, -1000, customMotivo[player.id] || 'Aura -1K')
+                                }}
+                                className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
+                              >
+                                -1K
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateAura(player.id, -5000, customMotivo[player.id] || 'Aura -5K')
+                                }}
+                                className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
+                              >
+                                -5K
+                              </button>
+                            </div>
                           </div>
-                          <div className="text-center text-xs text-gray-400 mb-2 sm:mb-3">
-                            💡 Usa il motivo sopra per tutte le azioni
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateAura(player.id, 1000, customMotivo[player.id] || 'Aura +1K')
-                              }}
-                              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                            >
-                              +1K
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateAura(player.id, 5000, customMotivo[player.id] || 'Aura +5K')
-                              }}
-                              className="bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                            >
-                              +5K
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateAura(player.id, -1000, customMotivo[player.id] || 'Aura -1K')
-                              }}
-                              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                            >
-                              -1K
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateAura(player.id, -5000, customMotivo[player.id] || 'Aura -5K')
-                              }}
-                              className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                            >
-                              -5K
-                            </button>
-                          </div>
-                        </div>
 
-                        {/* Extreme Values (M) */}
-                        <div>
-                          <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-2 sm:mb-3">
-                            🔥 Valori Estremi (M)
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateAura(player.id, 100000, customMotivo[player.id] || 'Aura +100K')
-                              }}
-                              className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                            >
-                            +100K
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateAura(player.id, 1000000, customMotivo[player.id] || 'Aura +1M')
-                              }}
-                              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                            >
-                              +1M
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateAura(player.id, -100000, customMotivo[player.id] || 'Aura -100K')
-                              }}
-                              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                            >
-                              -100K
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateAura(player.id, -1000000, customMotivo[player.id] || 'Aura -1M')
-                              }}
-                              className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                            >
-                              -1M
-                            </button>
+                          {/* Extreme Values (M) */}
+                          <div>
+                            <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-2 sm:mb-3">
+                              🔥 Valori Estremi (M)
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateAura(player.id, 100000, customMotivo[player.id] || 'Aura +100K')
+                                }}
+                                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
+                              >
+                              +100K
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateAura(player.id, 1000000, customMotivo[player.id] || 'Aura +1M')
+                                }}
+                                className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
+                              >
+                                +1M
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateAura(player.id, -100000, customMotivo[player.id] || 'Aura -100K')
+                                }}
+                                className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
+                              >
+                                -100K
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  updateAura(player.id, -1000000, customMotivo[player.id] || 'Aura -1M')
+                                }}
+                                className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
+                              >
+                                -1M
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1028,7 +1496,11 @@ export default function GamePage() {
                   <div className="text-center py-16">
                     <div className="text-8xl mb-6">⭐</div>
                     <p className="text-2xl font-bold text-white mb-2">Nessun giocatore ancora aggiunto</p>
-                    <p className="text-lg text-gray-300">✨ Aggiungi il primo giocatore per iniziare! ✨</p>
+                    {currentUser && currentUser.isGuest ? (
+                      <p className="text-lg text-gray-300">👻 Gli ospiti possono solo visualizzare. Registrati per unirti alla partita!</p>
+                    ) : (
+                      <p className="text-lg text-gray-300">✨ Registrati e unisciti alla partita per iniziare! ✨</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -1053,7 +1525,12 @@ export default function GamePage() {
                 ) : (
                   <div className="space-y-3 sm:space-y-4 max-h-[400px] sm:max-h-[600px] overflow-y-auto">
                     {actions.map((action) => (
-                      <div key={action.id} className="flex items-start gap-3 sm:gap-4 p-4 sm:p-6 bg-white/10 backdrop-blur border border-white/20 rounded-xl sm:rounded-2xl hover:bg-white/20 transition-all duration-300">
+                      <div 
+                        key={action.id} 
+                        className="flex items-start gap-3 sm:gap-4 p-4 sm:p-6 bg-white/10 backdrop-blur border border-white/20 rounded-xl sm:rounded-2xl hover:bg-white/20 transition-all duration-300 cursor-pointer transform hover:scale-[1.02]"
+                        onClick={() => openActionModal(action)}
+                        title="Clicca per vedere dettagli e commenti"
+                      >
                         <div className="flex-shrink-0">
                           <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center text-xs sm:text-sm font-bold backdrop-blur border border-white/30 ${
                             action.points > 0 
@@ -1070,6 +1547,25 @@ export default function GamePage() {
                           <div className="text-xs sm:text-sm text-gray-300 truncate mt-1">
                             {action.description}
                           </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <div>
+                              {action.performed_by_username && (
+                                <div className="text-xs text-blue-300 flex items-center gap-1">
+                                  <User className="w-3 h-3" />
+                                  Aggiunto da {action.performed_by_username}
+                                </div>
+                              )}
+                              {!action.performed_by_username && (
+                                <div className="text-xs text-gray-500 flex items-center gap-1">
+                                  <User className="w-3 h-3" />
+                                  Azione automatica
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-xs text-purple-300 flex items-center gap-1">
+                              💬 <span>Commenti</span>
+                            </div>
+                          </div>
                           <div className="text-xs text-gray-400 mt-2 flex items-center gap-1">
                             <Clock className="w-3 h-3" />
                             {new Date(action.created_at).toLocaleTimeString('it-IT', {
@@ -1080,7 +1576,10 @@ export default function GamePage() {
                         </div>
                         <div className="flex-shrink-0">
                           <button
-                            onClick={() => deleteAction(action.id, action.description)}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              deleteAction(action.id, action.description)
+                            }}
                             className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors"
                             title="Elimina azione"
                           >
@@ -1112,7 +1611,7 @@ export default function GamePage() {
                   onClick={() => setSelectedPlayer(player)}
                 >
                   <div className="flex items-center gap-3 sm:gap-4">
-                    <span className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full flex items-center justify-center font-bold text-sm sm:text-lg shadow-lg">
+                    <span className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full flex items-center justify-center font-bold text-sm sm:text-lg">
                       {index + 1}
                     </span>
                     <span className="text-2xl sm:text-3xl">{index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : '⭐'}</span>

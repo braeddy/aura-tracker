@@ -7,12 +7,27 @@ export async function PATCH(
 ) {
   try {
     const { code, playerId } = await params
-    const { points, description } = await request.json()
+    const { points, description, userId } = await request.json()
     
     if (!code || !playerId) {
       return NextResponse.json(
         { error: 'Codice partita e ID giocatore richiesti' },
         { status: 400 }
+      )
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'ID utente richiesto per effettuare azioni' },
+        { status: 400 }
+      )
+    }
+
+    // Verifica che non sia un ospite
+    if (userId.startsWith('Guest_')) {
+      return NextResponse.json(
+        { error: 'Gli ospiti non possono effettuare azioni. Registrati per partecipare attivamente al gioco.' },
+        { status: 403 }
       )
     }
 
@@ -24,6 +39,18 @@ export async function PATCH(
     }
 
     const supabase = await createClient()
+
+    // Ottieni informazioni dell'utente che effettua l'azione
+    let performedByUser = null
+    if (!userId.startsWith('Guest_')) {
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id, username, display_name')
+        .eq('id', userId)
+        .single()
+      
+      performedByUser = userData
+    }
 
     // Verifica che la partita e il giocatore esistano
     const { data: player, error: playerError } = await supabase
@@ -66,17 +93,38 @@ export async function PATCH(
       )
     }
 
-    // Registra l'azione
+    // Registra l'azione con informazioni su chi l'ha effettuata
+    const actionData: {
+      game_id: string
+      player_id: string
+      action_type: 'aura_gain' | 'aura_loss'
+      points: number
+      description: string
+      created_at: string
+      performed_by_user_id?: string
+      performed_by_username?: string
+    } = {
+      game_id: player.games.id,
+      player_id: playerId,
+      action_type: points > 0 ? 'aura_gain' : 'aura_loss',
+      points,
+      description: description || (points > 0 ? 'Aura guadagnata' : 'Aura persa'),
+      created_at: new Date().toISOString()
+    }
+
+    // Aggiungi informazioni sull'utente che ha effettuato l'azione se disponibili
+    if (performedByUser) {
+      actionData.performed_by_user_id = performedByUser.id
+      actionData.performed_by_username = performedByUser.display_name
+    } else if (userId.startsWith('Guest_')) {
+      actionData.performed_by_username = 'Ospite'
+    }
+
+    console.log('Saving action with data:', actionData)
+
     const { error: actionError } = await supabase
       .from('actions')
-      .insert({
-        game_id: player.games.id,
-        player_id: playerId,
-        action_type: points > 0 ? 'aura_gain' : 'aura_loss',
-        points,
-        description: description || (points > 0 ? 'Aura guadagnata' : 'Aura persa'),
-        created_at: new Date().toISOString()
-      })
+      .insert(actionData)
 
     if (actionError) {
       console.error('Errore registrazione azione:', actionError)

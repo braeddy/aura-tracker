@@ -13,7 +13,9 @@ export async function POST(
 ) {
   try {
     const { code } = await params
-    const { name } = await request.json()
+    const { userId } = await request.json()
+    
+    console.log('Add player request:', { code, userId })
     
     if (!code || typeof code !== 'string') {
       return NextResponse.json(
@@ -22,10 +24,18 @@ export async function POST(
       )
     }
 
-    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    if (!userId || typeof userId !== 'string') {
       return NextResponse.json(
-        { error: 'Nome giocatore richiesto' },
+        { error: 'ID utente richiesto. Solo gli utenti registrati possono essere aggiunti come giocatori.' },
         { status: 400 }
+      )
+    }
+
+    // Verifica che non sia un ospite
+    if (userId.startsWith('Guest_')) {
+      return NextResponse.json(
+        { error: 'Gli ospiti non possono essere aggiunti come giocatori. Registrati per partecipare attivamente al gioco.' },
+        { status: 403 }
       )
     }
 
@@ -45,29 +55,45 @@ export async function POST(
       )
     }
 
-    // Verifica che il nome non sia già in uso
+    // Verifica che l'utente esista nel database
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, username, display_name, avatar_url')
+      .eq('id', userId)
+      .single()
+
+    if (userError || !user) {
+      return NextResponse.json(
+        { error: 'Utente non trovato. Effettua nuovamente il login.' },
+        { status: 404 }
+      )
+    }
+
+    // Verifica che l'utente non sia già un giocatore in questa partita
     const { data: existingPlayer } = await supabase
       .from('players')
       .select('id')
       .eq('game_id', game.id)
-      .eq('name', name.trim())
+      .eq('user_id', userId)
       .single()
 
     if (existingPlayer) {
       return NextResponse.json(
-        { error: 'Nome giocatore già in uso' },
+        { error: 'Sei già un giocatore di questa partita' },
         { status: 400 }
       )
     }
 
-    // Aggiungi il giocatore
+    // Aggiungi il giocatore collegando l'utente registrato
     const { data: player, error } = await supabase
       .from('players')
       .insert({
         game_id: game.id,
-        name: name.trim(),
-        avatar: getRandomAvatar(),
+        user_id: userId,
+        name: user.display_name,
+        avatar: user.avatar_url || getRandomAvatar(),
         aura_points: 0,
+        is_guest: false,
         created_at: new Date().toISOString()
       })
       .select()
@@ -81,9 +107,18 @@ export async function POST(
       )
     }
 
+    // Crea/aggiorna la sessione di gioco
+    await supabase
+      .from('game_sessions')
+      .upsert({
+        game_id: game.id,
+        user_id: userId,
+        last_active: new Date().toISOString()
+      })
+
     return NextResponse.json({ 
       player,
-      message: 'Giocatore aggiunto con successo' 
+      message: 'Ti sei unito alla partita con successo!' 
     })
 
   } catch (error) {
