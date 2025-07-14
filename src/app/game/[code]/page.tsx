@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { UserPlus, BarChart3, TrendingUp, TrendingDown, Sparkles, Heart, Zap, Calendar, Activity, Clock, Trophy, UserX, ArrowLeft } from 'lucide-react'
+import { UserPlus, BarChart3, TrendingUp, TrendingDown, Sparkles, Heart, Zap, Calendar, Activity, Clock, Trophy, UserX, ArrowLeft, Trash2 } from 'lucide-react'
 
 interface Player {
   id: string
@@ -50,7 +50,7 @@ export default function GamePage() {
   // Stato per le notifiche integrate
   const [notification, setNotification] = useState<{
     show: boolean
-    type: 'reset' | 'delete' | null
+    type: 'reset' | 'delete' | 'deletePlayer' | 'deleteAction' | null
     message: string
     onConfirm: () => void
   }>({
@@ -187,7 +187,7 @@ export default function GamePage() {
   const deletePlayer = async (playerId: string, playerName: string) => {
     setNotification({
       show: true,
-      type: 'delete',
+      type: 'deletePlayer',
       message: `Sei sicuro di voler eliminare definitivamente il giocatore "${playerName}"? Tutti i suoi dati e le sue azioni verranno persi per sempre.`,
       onConfirm: async () => {
         try {
@@ -204,6 +204,32 @@ export default function GamePage() {
           }
         } catch (error) {
           console.error('Errore nell\'eliminazione:', error)
+          alert('Errore di connessione durante l\'eliminazione')
+        }
+      }
+    })
+  }
+
+  // Funzione per eliminare un'azione
+  const deleteAction = async (actionId: string, actionDescription: string) => {
+    setNotification({
+      show: true,
+      type: 'deleteAction',
+      message: `Sei sicuro di voler eliminare l'azione "${actionDescription}"? I punti verranno sottratti dal giocatore.`,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/games/${code}/actions/${actionId}`, {
+            method: 'DELETE',
+          })
+          
+          if (response.ok) {
+            setNotification({ show: false, type: null, message: '', onConfirm: () => {} })
+            await fetchGameData() // Ricarica i dati
+          } else {
+            alert('Errore durante l\'eliminazione dell\'azione')
+          }
+        } catch (error) {
+          console.error('Errore nell\'eliminazione dell\'azione:', error)
           alert('Errore di connessione durante l\'eliminazione')
         }
       }
@@ -297,12 +323,14 @@ export default function GamePage() {
           <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl max-w-md w-full p-8 transform transition-all border border-white/20">
             <div className="text-center mb-6">
               <div className="text-8xl mb-4">
-                {notification.type === 'delete' ? '🗑️' : '🔄'}
+                {(notification.type === 'delete' || notification.type === 'deletePlayer' || notification.type === 'deleteAction') ? '🗑️' : '🔄'}
               </div>
               <h3 className={`text-3xl font-bold mb-4 ${
-                notification.type === 'delete' ? 'text-red-400' : 'text-orange-400'
+                (notification.type === 'delete' || notification.type === 'deletePlayer' || notification.type === 'deleteAction') ? 'text-red-400' : 'text-orange-400'
               }`}>
-                {notification.type === 'delete' ? 'Elimina Partita' : 'Reset Partita'}
+                {notification.type === 'delete' ? 'Elimina Partita' : 
+                 notification.type === 'deletePlayer' ? 'Elimina Giocatore' :
+                 notification.type === 'deleteAction' ? 'Elimina Azione' : 'Reset Partita'}
               </h3>
               <p className="text-gray-300 text-lg leading-relaxed">
                 {notification.message}
@@ -319,12 +347,14 @@ export default function GamePage() {
               <button
                 onClick={notification.onConfirm}
                 className={`flex-1 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 ${
-                  notification.type === 'delete' 
+                  (notification.type === 'delete' || notification.type === 'deletePlayer' || notification.type === 'deleteAction')
                     ? 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700' 
                     : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600'
                 }`}
               >
-                {notification.type === 'delete' ? '🗑️ Elimina' : '🔄 Reset'}
+                {notification.type === 'delete' ? '🗑️ Elimina Partita' : 
+                 notification.type === 'deletePlayer' ? '🗑️ Elimina Giocatore' :
+                 notification.type === 'deleteAction' ? '🗑️ Elimina Azione' : '🔄 Reset'}
               </button>
             </div>
           </div>
@@ -334,14 +364,14 @@ export default function GamePage() {
       {/* Modal Dettagli Giocatore */}
       {selectedPlayer && (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
+          <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-white/20 flex flex-col">
             {(() => {
               const stats = getPlayerStats(selectedPlayer)
               const playerRank = players.sort((a, b) => b.aura_points - a.aura_points).findIndex(p => p.id === selectedPlayer.id) + 1
               return (
                 <>
-                  {/* Header */}
-                  <div className="sticky top-0 bg-white/10 backdrop-blur border-b border-white/20 p-6 rounded-t-3xl">
+                  {/* Header Fisso */}
+                  <div className="flex-shrink-0 bg-white/10 backdrop-blur border-b border-white/20 p-6 rounded-t-3xl">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="text-4xl">{playerRank === 1 ? '👑' : playerRank === 2 ? '🥈' : playerRank === 3 ? '🥉' : '⭐'}</div>
@@ -378,7 +408,8 @@ export default function GamePage() {
                     </div>
                   </div>
 
-                  <div className="p-6 space-y-8">
+                  {/* Contenuto Scrollabile */}
+                  <div className="flex-1 overflow-y-auto p-6 space-y-8">
                     {/* Aura Points Display */}
                     <div className="text-center">
                       <div className="text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400 mb-4">
@@ -488,9 +519,13 @@ export default function GamePage() {
                           .filter(action => action.player_id === selectedPlayer.id)
                           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                           .map((action, index) => (
-                            <div key={index} className="flex items-center justify-between p-4 bg-white/10 backdrop-blur rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300">
+                            <div key={action.id} className="flex items-center justify-between p-4 bg-white/10 backdrop-blur rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300">
                               <div className="flex items-center gap-3">
-                                <div className={`w-3 h-3 rounded-full ${action.points > 0 ? 'bg-green-400' : 'bg-red-400'} animate-pulse`}></div>
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                  action.points > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                                }`}>
+                                  {action.points > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                                </div>
                                 <div>
                                   <div className="font-bold text-white">{action.description}</div>
                                   <div className="text-xs text-gray-400">
@@ -498,8 +533,19 @@ export default function GamePage() {
                                   </div>
                                 </div>
                               </div>
-                              <div className={`font-bold text-lg px-3 py-1 rounded-xl ${action.points > 0 ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' : 'bg-gradient-to-r from-red-500 to-pink-500 text-white'}`}>
-                                {action.points > 0 ? '+' : ''}{formatAuraValue(action.points)}
+                              <div className="flex items-center gap-2">
+                                <div className={`font-bold text-lg px-3 py-1 rounded-xl ${
+                                  action.points > 0 ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' : 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
+                                }`}>
+                                  {action.points > 0 ? '+' : ''}{formatAuraValue(action.points)}
+                                </div>
+                                <button
+                                  onClick={() => deleteAction(action.id, action.description)}
+                                  className="p-1 hover:bg-red-500/20 rounded text-red-400 hover:text-red-300 transition-colors"
+                                  title="Elimina azione"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               </div>
                             </div>
                           ))}
@@ -730,7 +776,7 @@ export default function GamePage() {
                     : 'bg-white/20 text-gray-300 hover:bg-white/30 hover:text-white border border-white/20'
                 }`}
               >
-                👥 <span className="hidden sm:inline">{players.length} Giocatori</span>
+                🏆 <span className="hidden sm:inline">Classifica</span>
                 <span className="sm:hidden">{players.length}</span>
               </button>
               
@@ -1032,6 +1078,15 @@ export default function GamePage() {
                             })}
                           </div>
                         </div>
+                        <div className="flex-shrink-0">
+                          <button
+                            onClick={() => deleteAction(action.id, action.description)}
+                            className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                            title="Elimina azione"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1051,13 +1106,20 @@ export default function GamePage() {
             </div>
             <div className="space-y-3 sm:space-y-4">
               {players.sort((a, b) => b.aura_points - a.aura_points).map((player, index) => (
-                <div key={player.id} className="flex items-center justify-between p-4 sm:p-6 bg-white/10 backdrop-blur rounded-xl sm:rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
+                <div 
+                  key={player.id} 
+                  className="flex items-center justify-between p-4 sm:p-6 bg-white/10 backdrop-blur rounded-xl sm:rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-105 cursor-pointer"
+                  onClick={() => setSelectedPlayer(player)}
+                >
                   <div className="flex items-center gap-3 sm:gap-4">
                     <span className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full flex items-center justify-center font-bold text-sm sm:text-lg shadow-lg">
                       {index + 1}
                     </span>
                     <span className="text-2xl sm:text-3xl">{index === 0 ? '👑' : index === 1 ? '🥈' : index === 2 ? '🥉' : '⭐'}</span>
-                    <span className="font-bold text-lg sm:text-xl text-white">{player.name}</span>
+                    <div>
+                      <div className="font-bold text-lg sm:text-xl text-white">{player.name}</div>
+                      <div className="text-xs sm:text-sm text-gray-300">🔍 Clicca per dettagli</div>
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400">
