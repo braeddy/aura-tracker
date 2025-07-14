@@ -24,6 +24,15 @@ interface Action {
   performed_by_username?: string
 }
 
+interface Comment {
+  id: string
+  action_id: string
+  user_id: string
+  username: string
+  comment: string
+  created_at: string
+}
+
 interface Game {
   id: string
   code: string
@@ -80,7 +89,7 @@ export default function GamePage() {
 
   // Stati per il modal delle azioni
   const [selectedAction, setSelectedAction] = useState<Action | null>(null)
-  const [actionComments, setActionComments] = useState<any[]>([])
+  const [actionComments, setActionComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState('')
   const [loadingComments, setLoadingComments] = useState(false)
 
@@ -146,7 +155,7 @@ export default function GamePage() {
       setGameData(data)
       
       // Log per debug - controlla se le azioni hanno le info dell'utente
-      console.log('Frontend received actions:', data.actions?.map((a: any) => ({
+      console.log('Frontend received actions:', data.actions?.map((a: Action) => ({
         id: a.id,
         description: a.description,
         performed_by_username: a.performed_by_username,
