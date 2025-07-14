@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Users, Trophy, Zap, Star, Sparkles, Play } from 'lucide-react'
 
 export default function HomePage() {
   const [gameCode, setGameCode] = useState('')
@@ -69,8 +68,8 @@ export default function HomePage() {
           <div className="text-center">
             <div className="flex justify-center mb-6">
               <div className="relative">
-                <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-4 rounded-3xl shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-300">
-                  <Sparkles className="h-12 w-12 text-white animate-pulse" />
+                <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-4 rounded-3xl shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-300 text-4xl flex items-center justify-center">
+                  ✨
                 </div>
                 <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full animate-ping"></div>
               </div>
@@ -85,20 +84,20 @@ export default function HomePage() {
           {/* Features */}
           <div className="grid grid-cols-3 gap-6 py-8">
             <div className="text-center group">
-              <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-3 rounded-2xl mx-auto mb-3 w-fit transform group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                <Users className="h-6 w-6 text-white" />
+              <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-3 rounded-2xl mx-auto mb-3 w-fit transform group-hover:scale-110 transition-transform duration-300 shadow-lg text-2xl flex items-center justify-center">
+                👥
               </div>
               <p className="text-sm text-gray-300 font-medium">Multigiocatore</p>
             </div>
             <div className="text-center group">
-              <div className="bg-gradient-to-r from-yellow-500 to-orange-500 p-3 rounded-2xl mx-auto mb-3 w-fit transform group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                <Trophy className="h-6 w-6 text-white" />
+              <div className="bg-gradient-to-r from-yellow-500 to-orange-500 p-3 rounded-2xl mx-auto mb-3 w-fit transform group-hover:scale-110 transition-transform duration-300 shadow-lg text-2xl flex items-center justify-center">
+                🏆
               </div>
               <p className="text-sm text-gray-300 font-medium">Classifiche</p>
             </div>
             <div className="text-center group">
-              <div className="bg-gradient-to-r from-green-500 to-teal-500 p-3 rounded-2xl mx-auto mb-3 w-fit transform group-hover:scale-110 transition-transform duration-300 shadow-lg">
-                <Zap className="h-6 w-6 text-white" />
+              <div className="bg-gradient-to-r from-green-500 to-teal-500 p-3 rounded-2xl mx-auto mb-3 w-fit transform group-hover:scale-110 transition-transform duration-300 shadow-lg text-2xl flex items-center justify-center">
+                ⚡
               </div>
               <p className="text-sm text-gray-300 font-medium">Tempo Reale</p>
             </div>
@@ -107,8 +106,8 @@ export default function HomePage() {
           {/* Create Game */}
           <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20 shadow-2xl hover:bg-white/15 transition-all duration-300 transform hover:scale-105">
             <div className="flex items-center gap-3 mb-6">
-              <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-xl">
-                <Plus className="h-5 w-5 text-white" />
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-xl text-xl flex items-center justify-center">
+                ➕
               </div>
               <h2 className="text-2xl font-bold text-white">Crea Partita</h2>
             </div>
@@ -132,7 +131,7 @@ export default function HomePage() {
                   </>
                 ) : (
                   <>
-                    <Star className="h-5 w-5 animate-pulse" />
+                    <span className="text-xl">⭐</span>
                     Crea Partita
                   </>
                 )}
@@ -143,8 +142,8 @@ export default function HomePage() {
           {/* Join Game */}
           <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20 shadow-2xl hover:bg-white/15 transition-all duration-300 transform hover:scale-105">
             <div className="flex items-center gap-3 mb-6">
-              <div className="bg-gradient-to-r from-blue-500 to-teal-500 p-2 rounded-xl">
-                <Play className="h-5 w-5 text-white" />
+              <div className="bg-gradient-to-r from-blue-500 to-teal-500 p-2 rounded-xl text-xl flex items-center justify-center">
+                ▶️
               </div>
               <h2 className="text-2xl font-bold text-white">Unisciti</h2>
             </div>

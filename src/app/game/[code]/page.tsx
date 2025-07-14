@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { UserPlus, BarChart3, TrendingUp, TrendingDown, Sparkles, Heart, Zap, Calendar, Activity, Clock, Trophy, UserX, ArrowLeft, Trash2, LogOut, User } from 'lucide-react'
+import { UserPlus, Trophy, UserX, ArrowLeft, Trash2, LogOut, User } from 'lucide-react'
 import LoginModal from '@/components/LoginModal'
 
 interface Player {
@@ -639,8 +639,7 @@ export default function GamePage() {
 
                     {/* Statistiche */}
                     <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
-                      <h3 className="text-2xl font-bold text-white mb-8 text-center flex items-center justify-center gap-2">
-                        <BarChart3 className="w-6 h-6" />
+                      <h3 className="text-2xl font-bold text-white mb-8 text-center">
                         ✨ Statistiche
                       </h3>
                       
@@ -648,54 +647,42 @@ export default function GamePage() {
                       <div className="grid grid-cols-2 gap-6">
                         {/* Azioni Totali */}
                         <div className="text-center bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                          <div className="w-14 h-14 mx-auto mb-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
-                            <BarChart3 className="w-7 h-7 text-white" />
-                          </div>
+                          <div className="text-4xl mb-3">📊</div>
                           <div className="text-3xl font-bold text-blue-400 mb-1">{stats.totalActions}</div>
                           <div className="text-sm text-gray-300 font-medium">Azioni Totali</div>
                         </div>
 
                         {/* Azioni Positive */}
                         <div className="text-center bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                          <div className="w-14 h-14 mx-auto mb-3 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
-                            <TrendingUp className="w-7 h-7 text-white" />
-                          </div>
+                          <div className="text-4xl mb-3">📈</div>
                           <div className="text-3xl font-bold text-green-400 mb-1">{stats.positiveActions}</div>
                           <div className="text-sm text-gray-300 font-medium">Azioni Positive</div>
                         </div>
 
                         {/* Azioni Negative */}
                         <div className="text-center bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                          <div className="w-14 h-14 mx-auto mb-3 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
-                            <TrendingDown className="w-7 h-7 text-white" />
-                          </div>
+                          <div className="text-4xl mb-3">📉</div>
                           <div className="text-3xl font-bold text-red-400 mb-1">{stats.negativeActions}</div>
                           <div className="text-sm text-gray-300 font-medium">Azioni Negative</div>
                         </div>
 
                         {/* Aura Guadagnata */}
                         <div className="text-center bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                          <div className="w-14 h-14 mx-auto mb-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg">
-                            <Sparkles className="w-7 h-7 text-white" />
-                          </div>
+                          <div className="text-4xl mb-3">✨</div>
                           <div className="text-3xl font-bold text-yellow-400 mb-1">+{formatAuraValue(stats.totalPositive)}</div>
                           <div className="text-sm text-gray-300 font-medium">Aura Guadagnata</div>
                         </div>
 
                         {/* Aura Persa */}
                         <div className="text-center bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                          <div className="w-14 h-14 mx-auto mb-3 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center shadow-lg">
-                            <Heart className="w-7 h-7 text-white" />
-                          </div>
+                          <div className="text-4xl mb-3">💔</div>
                           <div className="text-3xl font-bold text-pink-400 mb-1">{formatAuraValue(stats.totalNegative)}</div>
                           <div className="text-sm text-gray-300 font-medium">Aura Persa</div>
                         </div>
 
                         {/* Aura Netta */}
                         <div className="text-center bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                          <div className="w-14 h-14 mx-auto mb-3 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center shadow-lg">
-                            <Zap className="w-7 h-7 text-white" />
-                          </div>
+                          <div className="text-4xl mb-3">⚡</div>
                           <div className={`text-3xl font-bold mb-1 ${stats.netAura >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             {stats.netAura >= 0 ? '+' : ''}{formatAuraValue(stats.netAura)}
                           </div>
@@ -704,9 +691,7 @@ export default function GamePage() {
 
                         {/* Media/Giorno */}
                         <div className="text-center bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                          <div className="w-14 h-14 mx-auto mb-3 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
-                            <Calendar className="w-7 h-7 text-white" />
-                          </div>
+                          <div className="text-4xl mb-3">📅</div>
                           <div className={`text-3xl font-bold mb-1 ${stats.averagePerDay >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                             {stats.averagePerDay >= 0 ? '+' : ''}{formatAuraValue(stats.averagePerDay)}
                           </div>
@@ -715,9 +700,7 @@ export default function GamePage() {
 
                         {/* Giorni Attivo */}
                         <div className="text-center bg-white/10 backdrop-blur rounded-2xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300">
-                          <div className="w-14 h-14 mx-auto mb-3 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg">
-                            <Activity className="w-7 h-7 text-white" />
-                          </div>
+                          <div className="text-4xl mb-3">🎯</div>
                           <div className="text-3xl font-bold text-teal-400 mb-1">{stats.uniqueDays}</div>
                           <div className="text-sm text-gray-300 font-medium">Giorni Attivo</div>
                         </div>
@@ -726,8 +709,7 @@ export default function GamePage() {
 
                     {/* Storico Azioni */}
                     <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
-                      <h3 className="text-2xl font-bold text-white mb-6 flex items-center justify-center gap-2">
-                        <Clock className="w-6 h-6" />
+                      <h3 className="text-2xl font-bold text-white mb-6 text-center">
                         📋 Storico Azioni
                       </h3>
                       <div className="max-h-60 overflow-y-auto space-y-3">
@@ -742,23 +724,21 @@ export default function GamePage() {
                               title="Clicca per vedere dettagli e commenti"
                             >
                               <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                                  action.points > 0 ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-lg ${
+                                  action.points > 0 ? 'bg-green-500/20' : 'bg-red-500/20'
                                 }`}>
-                                  {action.points > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                                  {action.points > 0 ? '📈' : '📉'}
                                 </div>
                                 <div>
                                   <div className="font-bold text-white">{action.description}</div>
                                   {action.performed_by_username && (
                                     <div className="text-xs text-blue-300 flex items-center gap-1 mt-1">
-                                      <User className="w-3 h-3" />
-                                      Aggiunto da {action.performed_by_username}
+                                      👤 Aggiunto da {action.performed_by_username}
                                     </div>
                                   )}
                                   {!action.performed_by_username && (
                                     <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                                      <User className="w-3 h-3" />
-                                      Azione automatica
+                                      🤖 Azione automatica
                                     </div>
                                   )}
                                   <div className="text-xs text-gray-400">
@@ -787,7 +767,6 @@ export default function GamePage() {
                           ))}
                         {actions.filter(action => action.player_id === selectedPlayer.id).length === 0 && (
                           <div className="text-center py-12">
-                            <Clock className="w-12 h-12 mx-auto mb-4 text-gray-400 opacity-50" />
                             <p className="text-gray-400">🎮 Nessuna azione registrata</p>
                           </div>
                         )}
@@ -796,8 +775,7 @@ export default function GamePage() {
 
                     {/* Controlli Aura */}
                     <div className="space-y-8">
-                      <h3 className="text-2xl font-bold text-white text-center flex items-center justify-center gap-2">
-                        <Zap className="w-6 h-6" />
+                      <h3 className="text-2xl font-bold text-white text-center">
                         ⚙️ Modifica Aura
                       </h3>
                       
@@ -945,12 +923,12 @@ export default function GamePage() {
             <div className="flex-shrink-0 bg-white/10 backdrop-blur border-b border-white/20 p-6 rounded-t-3xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-3xl ${
                     selectedAction.points > 0 
-                      ? 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 text-green-300' 
-                      : 'bg-gradient-to-r from-red-500/30 to-pink-500/30 text-red-300'
+                      ? 'bg-gradient-to-r from-green-500/30 to-emerald-500/30' 
+                      : 'bg-gradient-to-r from-red-500/30 to-pink-500/30'
                   } border border-white/30`}>
-                    {selectedAction.points > 0 ? <TrendingUp className="w-6 h-6" /> : <TrendingDown className="w-6 h-6" />}
+                    {selectedAction.points > 0 ? '📈' : '📉'}
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-white">
@@ -1155,8 +1133,8 @@ export default function GamePage() {
 
           <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 text-center">
             <div className="flex justify-center mb-2 sm:mb-4">
-              <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-lg">
-                <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-white animate-pulse" />
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 sm:p-3 rounded-xl sm:rounded-2xl shadow-lg text-3xl">
+                ✨
               </div>
             </div>
             <h1 className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-yellow-400 mb-2 sm:mb-3">
@@ -1518,9 +1496,7 @@ export default function GamePage() {
               <div className="lg:col-span-1 mt-8 lg:mt-0">
                 <div className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-2xl p-4 sm:p-8 lg:sticky lg:top-8">
                   <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                    <div className="bg-gradient-to-r from-indigo-500 to-purple-500 p-2 rounded-xl">
-                      <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                    </div>
+                    <div className="text-2xl">📚</div>
                     <h2 className="text-xl sm:text-2xl font-bold text-white">
                       Storico Azioni
                     </h2>
@@ -1576,8 +1552,7 @@ export default function GamePage() {
                             </div>
                           </div>
                           <div className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {new Date(action.created_at).toLocaleTimeString('it-IT', {
+                            🕐 {new Date(action.created_at).toLocaleTimeString('it-IT', {
                               hour: '2-digit',
                               minute: '2-digit'
                             })}
