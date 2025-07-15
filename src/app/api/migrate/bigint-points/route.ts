@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 export async function POST() {
@@ -89,7 +89,7 @@ export async function GET() {
     const supabase = await createClient()
     
     // Verifica i tipi di colonna attuali
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('action_proposals')
       .select('points')
       .limit(1)

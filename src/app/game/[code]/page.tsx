@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { UserPlus, Trophy, UserX, ArrowLeft, Trash2, LogOut, User, Vote } from 'lucide-react'
+import { UserPlus, Trophy, UserX, ArrowLeft, Trash2, LogOut, User } from 'lucide-react'
 import LoginModal from '@/components/LoginModal'
 import ProposalModal from '@/components/ProposalModal'
 
@@ -80,8 +80,6 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('home')
   const [joiningGame, setJoiningGame] = useState(false)
-  const [customAura, setCustomAura] = useState<{[key: string]: string}>({})
-  const [customMotivo, setCustomMotivo] = useState<{[key: string]: string}>({})
 
   // Stati per il sistema di login
   const [currentUser, setCurrentUser] = useState<{
@@ -108,8 +106,6 @@ export default function GamePage() {
 
   // Stato per il modal del giocatore
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null)
-  const [playerModalCustomAura, setPlayerModalCustomAura] = useState('')
-  const [playerModalMotivo, setPlayerModalMotivo] = useState('')
 
   // Stati per il modal delle azioni
   const [selectedAction, setSelectedAction] = useState<Action | null>(null)
@@ -200,7 +196,6 @@ export default function GamePage() {
   useEffect(() => {
     if (code) {
       fetchGameData()
-      fetchProposals()
     }
   }, [code, fetchGameData])
 
@@ -323,43 +318,6 @@ export default function GamePage() {
       alert('Errore di connessione')
     } finally {
       setJoiningGame(false)
-    }
-  }
-
-  const updateAura = async (playerId: string, points: number, description: string) => {
-    if (!currentUser) return
-    
-    // Verifica che l'utente non sia un ospite
-    if (currentUser.isGuest) {
-      alert('Gli ospiti non possono effettuare azioni. Registrati per partecipare attivamente al gioco.')
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/games/${code}/players/${playerId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          points, 
-          description,
-          userId: currentUser.id
-        })
-      })
-
-      const data = await response.json()
-      
-      if (response.ok) {
-        setCustomAura({...customAura, [playerId]: ''})
-        setCustomMotivo({...customMotivo, [playerId]: ''})
-        fetchGameData()
-      } else {
-        alert(data.error || 'Errore nell\'aggiornamento aura')
-      }
-    } catch (error) {
-      console.error('Errore nell\'aggiornamento aura:', error)
-      alert('Errore di connessione')
     }
   }
 
@@ -558,7 +516,7 @@ export default function GamePage() {
     }
   }
 
-  const fetchProposals = async () => {
+  const fetchProposals = useCallback(async () => {
     try {
       const response = await fetch(`/api/games/${code}/proposals`)
       const data = await response.json()
@@ -571,13 +529,13 @@ export default function GamePage() {
     } catch (error) {
       console.error('Errore nel fetch proposte:', error)
     }
-  }
+  }, [code])
 
   useEffect(() => {
     if (code) {
       fetchProposals()
     }
-  }, [code])
+  }, [code, fetchProposals])
 
   if (loading) {
     return (
@@ -716,8 +674,6 @@ export default function GamePage() {
                         <button
                           onClick={() => {
                             setSelectedPlayer(null)
-                            setPlayerModalCustomAura('')
-                            setPlayerModalMotivo('')
                           }}
                           className="text-gray-400 hover:text-white transition-colors text-3xl transform hover:scale-110 duration-300"
                         >
@@ -884,14 +840,14 @@ export default function GamePage() {
                           Sistema di Voto Democratico
                         </h3>
                         <p className="text-gray-300 text-lg mb-6">
-                          Le modifiche all'aura richiedono ora l'approvazione della community attraverso il sistema di votazione democratico.
+                          Le modifiche all&apos;aura richiedono ora l&apos;approvazione della community attraverso il sistema di votazione democratico.
                         </p>
                         <div className="bg-blue-500/20 border border-blue-500/30 text-blue-300 p-6 rounded-2xl">
                           <div className="text-lg font-bold mb-2">💡 Come funziona:</div>
                           <div className="text-sm text-blue-200 space-y-2">
-                            <p>• Proponi una modifica attraverso il pulsante "Proponi Modifica Aura"</p>
+                            <p>• Proponi una modifica attraverso il pulsante &quot;Proponi Modifica Aura&quot;</p>
                             <p>• La community voterà sulla tua proposta</p>
-                            <p>• Se approvata, l'azione viene eseguita automaticamente</p>
+                            <p>• Se approvata, l&apos;azione viene eseguita automaticamente</p>
                             <p>• Tutte le azioni vengono tracciate con il tuo nome</p>
                           </div>
                         </div>
@@ -1290,7 +1246,7 @@ export default function GamePage() {
                         Proponi Modifica Aura
                       </button>
                       <div className="text-center text-xs sm:text-sm text-gray-400 mt-3">
-                        💡 Le modifiche all'aura richiedono approvazione democratica dalla community
+                        💡 Le modifiche all&apos;aura richiedono approvazione democratica dalla community
                       </div>
                     </div>
                   </div>

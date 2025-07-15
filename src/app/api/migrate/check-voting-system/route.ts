@@ -1,17 +1,17 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createClient()
 
     // Verifica se le tabelle del sistema di votazione esistono
-    const { data: proposals_table, error: proposalsError } = await supabase
+    const { error: proposalsError } = await supabase
       .from('action_proposals')
       .select('id')
       .limit(1)
 
-    const { data: votes_table, error: votesError } = await supabase
+    const { error: votesError } = await supabase
       .from('proposal_votes')
       .select('id')
       .limit(1)

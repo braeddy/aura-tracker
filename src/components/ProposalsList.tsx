@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 interface ActionProposal {
   id: string
@@ -39,7 +39,7 @@ export default function ProposalsList({
   const [votingProposalId, setVotingProposalId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
-  const fetchProposals = async () => {
+  const fetchProposals = useCallback(async () => {
     try {
       const response = await fetch(`/api/games/${gameCode}/proposals`)
       const data = await response.json()
@@ -54,7 +54,7 @@ export default function ProposalsList({
     } finally {
       setLoading(false)
     }
-  }
+  }, [gameCode])
 
   const handleVote = async (proposalId: string, vote: 'for' | 'against') => {
     setVotingProposalId(proposalId)
@@ -124,7 +124,7 @@ export default function ProposalsList({
     // Ricarica ogni 30 secondi per aggiornamenti in tempo reale
     const interval = setInterval(fetchProposals, 30000)
     return () => clearInterval(interval)
-  }, [gameCode])
+  }, [fetchProposals])
 
   if (loading) {
     return (
@@ -154,7 +154,7 @@ export default function ProposalsList({
       <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
         <div className="text-4xl mb-2">🗳️</div>
         <p>Nessuna proposta attiva al momento</p>
-        <p className="text-sm">Crea una proposta per modificare l'aura di un giocatore!</p>
+        <p className="text-sm">Crea una proposta per modificare l&apos;aura di un giocatore!</p>
       </div>
     )
   }
@@ -206,7 +206,7 @@ export default function ProposalsList({
 
             {/* Descrizione */}
             <p className="text-gray-700 mb-3 p-2 bg-gray-50 rounded">
-              "{proposal.description}"
+              &quot;{proposal.description}&quot;
             </p>
 
             {/* Contatori voti */}
