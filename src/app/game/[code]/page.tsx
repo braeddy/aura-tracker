@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { UserPlus, Trophy, UserX, ArrowLeft, Trash2, LogOut, User } from 'lucide-react'
+import { UserPlus, Trophy, UserX, ArrowLeft, Trash2, LogOut, User, Vote } from 'lucide-react'
 import LoginModal from '@/components/LoginModal'
+import ProposalModal from '@/components/ProposalModal'
 
 interface Player {
   id: string
@@ -38,6 +39,29 @@ interface Game {
   code: string
   name: string
   created_at: string
+}
+
+interface Proposal {
+  id: string
+  game_id: string
+  player_id: string
+  proposed_by_user_id?: string
+  proposed_by_username: string
+  description: string
+  points: number
+  status: 'pending' | 'approved' | 'rejected' | 'executed'
+  votes_for: number
+  votes_against: number
+  total_voters: number
+  required_votes: number
+  expires_at: string
+  created_at: string
+  executed_at?: string
+  resulting_action_id?: string
+  players?: {
+    id: string
+    name: string
+  }
 }
 
 interface GameData {
@@ -92,6 +116,10 @@ export default function GamePage() {
   const [actionComments, setActionComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState('')
   const [loadingComments, setLoadingComments] = useState(false)
+
+  // Stati per il sistema di proposte
+  const [proposals, setProposals] = useState<Proposal[]>([])
+  const [showProposalModal, setShowProposalModal] = useState(false)
 
   // Funzione per formattare i numeri in K, M, B
   const formatAuraValue = (value: number): string => {
@@ -172,6 +200,7 @@ export default function GamePage() {
   useEffect(() => {
     if (code) {
       fetchGameData()
+      fetchProposals()
     }
   }, [code, fetchGameData])
 
@@ -489,6 +518,67 @@ export default function GamePage() {
     fetchActionComments(action.id)
   }
 
+  // Funzioni per il sistema di proposte
+  const voteProposal = async (proposalId: string, voteType: 'approve' | 'reject') => {
+    if (!currentUser) return
+    
+    if (currentUser.isGuest) {
+      alert('Gli ospiti non possono votare. Registrati per partecipare attivamente al gioco.')
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/games/${code}/proposals/${proposalId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          vote: voteType === 'approve' ? 'for' : 'against',
+          username: currentUser.displayName
+        })
+      })
+
+      const data = await response.json()
+      
+      if (response.ok) {
+        // Ricarica le proposte
+        fetchProposals()
+        
+        // Se la proposta è stata eseguita, ricarica anche i dati del gioco
+        if (data.actionResult?.executed) {
+          fetchGameData()
+        }
+      } else {
+        alert(data.error || 'Errore nel voto')
+      }
+    } catch (error) {
+      console.error('Errore nel voto:', error)
+      alert('Errore di connessione')
+    }
+  }
+
+  const fetchProposals = async () => {
+    try {
+      const response = await fetch(`/api/games/${code}/proposals`)
+      const data = await response.json()
+      
+      if (response.ok) {
+        setProposals(data.proposals || [])
+      } else {
+        console.error('Errore nel caricamento proposte:', data.error)
+      }
+    } catch (error) {
+      console.error('Errore nel fetch proposte:', error)
+    }
+  }
+
+  useEffect(() => {
+    if (code) {
+      fetchProposals()
+    }
+  }, [code])
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -525,6 +615,19 @@ export default function GamePage() {
         onClose={() => setShowLoginModal(false)}
         onLogin={handleLogin}
         gameCode={code}
+      />
+
+      {/* Proposal Modal */}
+      <ProposalModal
+        isOpen={showProposalModal}
+        onClose={() => setShowProposalModal(false)}
+        players={players}
+        gameCode={code}
+        username={currentUser?.displayName || ''}
+        onProposalCreated={() => {
+          setShowProposalModal(false)
+          fetchProposals()
+        }}
       />
 
       {/* Notifica Integrata - Fuori dal container principale */}
@@ -773,137 +876,24 @@ export default function GamePage() {
                       </div>
                     </div>
 
-                    {/* Controlli Aura */}
-                    <div className="space-y-8">
-                      <h3 className="text-2xl font-bold text-white text-center">
-                        ⚙️ Modifica Aura
-                      </h3>
-                      
-                      {/* Custom Aura Section */}
-                      <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 border border-white/20">
-                        <div className="text-center text-xl font-bold text-white mb-6">
-                          🎯 Aura Personalizzata
-                        </div>
-                        <div className="space-y-4">
-                          <input
-                            type="number"
-                            placeholder="Inserisci quantità aura..."
-                            value={playerModalCustomAura}
-                            onChange={(e) => setPlayerModalCustomAura(e.target.value)}
-                            className="w-full px-6 py-4 bg-white/20 backdrop-blur border border-white/30 rounded-2xl text-white placeholder-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300 text-center text-lg"
-                          />
-                          <input
-                            type="text"
-                            placeholder="💭 Motivo (opzionale per tutte le azioni)..."
-                            value={playerModalMotivo}
-                            onChange={(e) => setPlayerModalMotivo(e.target.value)}
-                            className="w-full px-6 py-4 bg-white/20 backdrop-blur border border-white/30 rounded-2xl text-white placeholder-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-center text-lg"
-                          />
-                          <button
-                            onClick={() => {
-                              updateAura(selectedPlayer.id, parseInt(playerModalCustomAura) || 0, playerModalMotivo || 'Aura personalizzata')
-                              setSelectedPlayer(null)
-                              setPlayerModalCustomAura('')
-                              setPlayerModalMotivo('')
-                            }}
-                            disabled={!playerModalCustomAura}
-                            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100 text-lg shadow-lg"
-                          >
-                            ⚡ Applica Aura
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Quick Actions */}
-                      <div>
-                        <div className="text-center text-xl font-bold text-white mb-4">
-                          ⚡ Modifiche Rapide (K)
-                        </div>
-                        <div className="text-center text-sm text-gray-300 mb-6">
-                          💡 Il motivo inserito sopra verrà applicato a tutte le azioni
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <button
-                            onClick={() => {
-                              updateAura(selectedPlayer.id, 1000, playerModalMotivo || 'Aura +1K')
-                              setSelectedPlayer(null)
-                            }}
-                            className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
-                          >
-                            +1K
-                          </button>
-                          <button
-                            onClick={() => {
-                              updateAura(selectedPlayer.id, 5000, playerModalMotivo || 'Aura +5K')
-                              setSelectedPlayer(null)
-                            }}
-                            className="bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
-                          >
-                            +5K
-                          </button>
-                          <button
-                            onClick={() => {
-                              updateAura(selectedPlayer.id, -1000, playerModalMotivo || 'Aura -1K')
-                              setSelectedPlayer(null)
-                            }}
-                            className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
-                          >
-                            -1K
-                          </button>
-                          <button
-                            onClick={() => {
-                              updateAura(selectedPlayer.id, -5000, playerModalMotivo || 'Aura -5K')
-                              setSelectedPlayer(null)
-                            }}
-                            className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
-                          >
-                            -5K
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Extreme Values */}
-                      <div>
-                        <div className="text-center text-xl font-bold text-white mb-6">
-                          🔥 Valori Estremi (M)
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <button
-                            onClick={() => {
-                              updateAura(selectedPlayer.id, 100000, playerModalMotivo || 'Aura +100K')
-                              setSelectedPlayer(null)
-                            }}
-                            className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
-                          >
-                            +100K
-                          </button>
-                          <button
-                            onClick={() => {
-                              updateAura(selectedPlayer.id, 1000000, playerModalMotivo || 'Aura +1M')
-                              setSelectedPlayer(null)
-                            }}
-                            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
-                          >
-                            +1M
-                          </button>
-                          <button
-                            onClick={() => {
-                              updateAura(selectedPlayer.id, -100000, playerModalMotivo || 'Aura -100K')
-                              setSelectedPlayer(null)
-                            }}
-                            className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
-                          >
-                            -100K
-                          </button>
-                          <button
-                            onClick={() => {
-                              updateAura(selectedPlayer.id, -1000000, playerModalMotivo || 'Aura -1M')
-                              setSelectedPlayer(null)
-                            }}
-                            className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white py-4 rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-lg"
-                          >
-                            -1M
-                          </button>
+                    {/* Sistema Democratico */}
+                    <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 backdrop-blur-lg rounded-3xl p-8 border border-blue-500/20">
+                      <div className="text-center">
+                        <div className="text-4xl mb-4">🗳️</div>
+                        <h3 className="text-2xl font-bold text-white mb-4">
+                          Sistema di Voto Democratico
+                        </h3>
+                        <p className="text-gray-300 text-lg mb-6">
+                          Le modifiche all'aura richiedono ora l'approvazione della community attraverso il sistema di votazione democratico.
+                        </p>
+                        <div className="bg-blue-500/20 border border-blue-500/30 text-blue-300 p-6 rounded-2xl">
+                          <div className="text-lg font-bold mb-2">💡 Come funziona:</div>
+                          <div className="text-sm text-blue-200 space-y-2">
+                            <p>• Proponi una modifica attraverso il pulsante "Proponi Modifica Aura"</p>
+                            <p>• La community voterà sulla tua proposta</p>
+                            <p>• Se approvata, l'azione viene eseguita automaticamente</p>
+                            <p>• Tutte le azioni vengono tracciate con il tuo nome</p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1285,6 +1275,27 @@ export default function GamePage() {
                   </div>
                 )}
 
+                {/* Pulsante Proposta Unico */}
+                {players.length > 0 && currentUser && !currentUser.isGuest && (
+                  <div className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-blue-500/20 shadow-2xl p-4 sm:p-6 mb-4 sm:mb-6">
+                    <div className="text-center">
+                      <div className="text-lg sm:text-xl font-bold text-white mb-3 sm:mb-4">
+                        🗳️ Sistema di Voto Democratico
+                      </div>
+                      <button
+                        onClick={() => setShowProposalModal(true)}
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-4 sm:py-5 px-8 sm:px-12 rounded-xl sm:rounded-2xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-base sm:text-lg flex items-center justify-center gap-3 mx-auto"
+                      >
+                        <span className="text-xl sm:text-2xl">🗳️</span>
+                        Proponi Modifica Aura
+                      </button>
+                      <div className="text-center text-xs sm:text-sm text-gray-400 mt-3">
+                        💡 Le modifiche all'aura richiedono approvazione democratica dalla community
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Players Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   {players.sort((a, b) => b.aura_points - a.aura_points).map((player, index) => (
@@ -1307,7 +1318,7 @@ export default function GamePage() {
                             {player.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-bold text-white text-lg sm:text-xl">{player.name}</div>
+                            <div className="font-bold text-lg sm:text-xl text-white">{player.name}</div>
                             <div className="text-xs sm:text-sm text-gray-300">#{index + 1} • 🔍 Dettagli</div>
                           </div>
                         </div>
@@ -1345,136 +1356,7 @@ export default function GamePage() {
                             Registrati per effettuare azioni sui giocatori
                           </div>
                         </div>
-                      ) : (
-                        /* Controlli completi per utenti registrati */
-                        <div className="space-y-4 sm:space-y-6">
-                          {/* Custom Aura Section */}
-                          <div className="bg-white/10 backdrop-blur rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-white/20">
-                            <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-3 sm:mb-4">
-                              🎯 Aura Personalizzata
-                            </div>
-                            <input
-                              type="number"
-                              placeholder="Inserisci quantità aura..."
-                              value={customAura[player.id] || ''}
-                              onChange={(e) => setCustomAura(prev => ({ ...prev, [player.id]: e.target.value }))}
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-full px-4 py-3 bg-white/20 backdrop-blur border border-white/30 rounded-xl text-white placeholder-gray-300 text-center mb-3 sm:mb-4 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
-                            />
-                            <input
-                              type="text"
-                              placeholder="💭 Motivo (opzionale per tutte le azioni)..."
-                              value={customMotivo[player.id] || ''}
-                              onChange={(e) => setCustomMotivo(prev => ({ ...prev, [player.id]: e.target.value }))}
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/20 backdrop-blur border border-white/30 rounded-xl text-white placeholder-gray-300 text-center mb-3 sm:mb-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 text-sm sm:text-base"
-                            />
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                updateAura(player.id, parseInt(customAura[player.id]) || 0, customMotivo[player.id] || 'Aura personalizzata')
-                              }}
-                              disabled={!customAura[player.id]}
-                              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-2.5 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100 text-sm sm:text-base"
-                            >
-                              ⚡ Applica Aura
-                            </button>
-                          </div>
-
-                          {/* Quick Modifications (K) */}
-                          <div>
-                            <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-1 sm:mb-2">
-                              ⚡ Modifiche Rapide (K)
-                            </div>
-                            <div className="text-center text-xs text-gray-400 mb-2 sm:mb-3">
-                              💡 Usa il motivo sopra per tutte le azioni
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateAura(player.id, 1000, customMotivo[player.id] || 'Aura +1K')
-                                }}
-                                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                              >
-                                +1K
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateAura(player.id, 5000, customMotivo[player.id] || 'Aura +5K')
-                                }}
-                                className="bg-gradient-to-r from-blue-500 to-teal-500 hover:from-blue-600 hover:to-teal-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                              >
-                                +5K
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateAura(player.id, -1000, customMotivo[player.id] || 'Aura -1K')
-                                }}
-                                className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                              >
-                                -1K
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateAura(player.id, -5000, customMotivo[player.id] || 'Aura -5K')
-                                }}
-                                className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                              >
-                                -5K
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Extreme Values (M) */}
-                          <div>
-                            <div className="text-center text-sm sm:text-base font-semibold text-gray-200 mb-2 sm:mb-3">
-                              🔥 Valori Estremi (M)
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateAura(player.id, 100000, customMotivo[player.id] || 'Aura +100K')
-                                }}
-                                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                              >
-                              +100K
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateAura(player.id, 1000000, customMotivo[player.id] || 'Aura +1M')
-                                }}
-                                className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                              >
-                                +1M
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateAura(player.id, -100000, customMotivo[player.id] || 'Aura -100K')
-                                }}
-                                className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                              >
-                                -100K
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  updateAura(player.id, -1000000, customMotivo[player.id] || 'Aura -1M')
-                                }}
-                                className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white py-2 sm:py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 shadow-lg text-sm sm:text-base"
-                              >
-                                -1M
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      ) : null}
                     </div>
                   ))}
                 </div>
@@ -1492,9 +1374,78 @@ export default function GamePage() {
                 )}
               </div>
 
-              {/* Right Side - Action History */}
-              <div className="lg:col-span-1 mt-8 lg:mt-0">
-                <div className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-2xl p-4 sm:p-8 lg:sticky lg:top-8">
+              {/* Right Side - Proposals and Action History */}
+              <div className="lg:col-span-1 mt-8 lg:mt-0 space-y-6">
+                {/* Proposte in Corso */}
+                <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-purple-500/20 shadow-2xl p-4 sm:p-6">
+                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                    <div className="text-2xl">🗳️</div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-white">
+                      Proposte in Corso
+                    </h2>
+                  </div>
+                  
+                  {proposals.length === 0 ? (
+                    <div className="text-center py-6">
+                      <div className="text-4xl mb-3">🗳️</div>
+                      <p className="text-base font-medium text-gray-200 mb-2">Nessuna proposta attiva</p>
+                      <p className="text-sm text-gray-400">Le proposte di modifica aura appariranno qui</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                      {proposals.filter(p => p.status === 'pending').map((proposal) => (
+                        <div key={proposal.id} className="bg-white/10 backdrop-blur rounded-xl p-4 border border-white/20">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="font-bold text-white text-sm">
+                              {proposal.players?.name || players.find(p => p.id === proposal.player_id)?.name}
+                            </div>
+                            <div className={`text-xs px-2 py-1 rounded-lg ${
+                              proposal.points > 0 ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
+                            }`}>
+                              {proposal.points > 0 ? '+' : ''}{formatAuraValue(proposal.points)}
+                            </div>
+                          </div>
+                          <p className="text-gray-300 text-xs mb-3">{proposal.description}</p>
+                          <div className="flex justify-between items-center text-xs mb-3">
+                            <span className="text-gray-400">
+                              👍 {proposal.votes_for} | 👎 {proposal.votes_against}
+                            </span>
+                            <span className="text-purple-300">
+                              di {proposal.proposed_by_username}
+                            </span>
+                          </div>
+                          
+                          {/* Pulsanti di voto */}
+                          {currentUser && !currentUser.isGuest && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => voteProposal(proposal.id, 'approve')}
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-lg text-xs font-medium transition-colors"
+                              >
+                                👍 Approva
+                              </button>
+                              <button
+                                onClick={() => voteProposal(proposal.id, 'reject')}
+                                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-xs font-medium transition-colors"
+                              >
+                                👎 Rifiuta
+                              </button>
+                            </div>
+                          )}
+                          
+                          {currentUser && currentUser.isGuest && (
+                            <div className="text-center text-xs text-gray-400 py-2">
+                              👻 Registrati per votare
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Storico Azioni */}
+                <div className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-2xl p-4 sm:p-8">
                   <div className="flex items-center gap-3 mb-4 sm:mb-6">
                     <div className="text-2xl">📚</div>
                     <h2 className="text-xl sm:text-2xl font-bold text-white">
