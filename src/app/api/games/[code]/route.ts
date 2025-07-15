@@ -127,7 +127,7 @@ export async function PATCH(
     }
 
     // Prepara i dati da aggiornare
-    const updateData: any = {}
+    const updateData: Record<string, string> = {}
     
     if (name && name.trim()) {
       updateData.name = name.trim()
@@ -138,7 +138,7 @@ export async function PATCH(
       
       // Verifica che il nuovo codice non sia già in uso (solo se diverso dal corrente)
       if (upperNewCode !== game.code) {
-        const { data: existingGame, error: checkError } = await supabase
+        const { data: existingGame } = await supabase
           .from('games')
           .select('id')
           .eq('code', upperNewCode)

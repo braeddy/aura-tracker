@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { UserPlus, Trophy, UserX, ArrowLeft, Trash2, LogOut, User, BookOpen, Settings } from 'lucide-react'
+import { UserPlus, UserX, ArrowLeft, Trash2, LogOut, User } from 'lucide-react'
 import LoginModal from '@/components/LoginModal'
 import ProposalModal from '@/components/ProposalModal'
 
@@ -1730,7 +1730,7 @@ export default function GamePage() {
                     </div>
                     
                     <p className="text-gray-300 text-sm mb-4 bg-white/5 p-3 rounded-lg break-words">
-                      "{action.description}"
+                      &quot;{action.description}&quot;
                     </p>
                     
                     <div className="flex justify-between items-center">
@@ -1889,7 +1889,7 @@ export default function GamePage() {
                       className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-white/40 backdrop-blur font-mono"
                     />
                     <div className="text-sm text-yellow-300 bg-yellow-500/10 p-3 rounded-lg">
-                      ⚠️ Attenzione: cambiando il codice, l'URL della partita cambierà e dovrai condividere il nuovo link con i giocatori.
+                      ⚠️ Attenzione: cambiando il codice, l&apos;URL della partita cambierà e dovrai condividere il nuovo link con i giocatori.
                     </div>
                     <div className="flex gap-3">
                       <button
