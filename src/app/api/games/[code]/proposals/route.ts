@@ -88,7 +88,7 @@ export async function POST(
     }
 
     const totalPlayers = players?.length || 1
-    const requiredVotes = Math.ceil(totalPlayers / 2) // Maggioranza semplice
+    const requiredVotes = Math.floor(totalPlayers / 2) + 1 // Maggioranza assoluta (metà + 1)
 
     // Crea la proposta
     const { data: proposal, error: insertError } = await supabase

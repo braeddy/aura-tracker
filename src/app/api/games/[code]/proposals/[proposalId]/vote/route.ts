@@ -108,7 +108,7 @@ export async function POST(
     // Verifica se la proposta ha raggiunto la maggioranza
     const totalVotes = updatedProposal.votes_for + updatedProposal.votes_against
     const proposalApproved = updatedProposal.votes_for >= updatedProposal.required_votes
-    const proposalRejected = updatedProposal.votes_against >= Math.ceil(updatedProposal.total_voters / 2)
+    const proposalRejected = updatedProposal.votes_against >= (Math.floor(updatedProposal.total_voters / 2) + 1)
 
     let status = 'pending'
     let shouldExecute = false

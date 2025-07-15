@@ -1500,15 +1500,12 @@ export default function GamePage() {
                               {(() => {
                                 // Calcola le soglie dinamicamente in base al numero di giocatori
                                 const totalPlayers = players.length
-                                const isEvenPlayers = totalPlayers % 2 === 0
                                 
-                                const approvalThreshold = isEvenPlayers 
-                                  ? Math.floor(totalPlayers / 2) + 1  // Metà + 1 per numeri pari
-                                  : Math.ceil(totalPlayers * 0.6)     // 60% per numeri dispari
-                                  
-                                const rejectionThreshold = isEvenPlayers 
-                                  ? Math.floor(totalPlayers / 2) - 1  // Metà - 1 per numeri pari  
-                                  : Math.ceil(totalPlayers * 0.4)     // 40% per numeri dispari
+                                // Per l'approvazione serve la maggioranza assoluta (> 50%)
+                                const approvalThreshold = Math.floor(totalPlayers / 2) + 1
+                                
+                                // Per il rifiuto serve anche la maggioranza assoluta (> 50%)
+                                const rejectionThreshold = Math.floor(totalPlayers / 2) + 1
                                 
                                 return (
                                   <>
@@ -1517,20 +1514,18 @@ export default function GamePage() {
                                       <div className="text-green-300">
                                         Servono {approvalThreshold} voti favorevoli
                                       </div>
-                                      {isEvenPlayers && ("")}
-                                      {proposal.votes_for >= approvalThreshold && (
-                                        <div className="text-green-200 text-xs mt-1">🎉 Soglia raggiunta!</div>
-                                      )}
+                                        {proposal.votes_for >= approvalThreshold && (
+                                          <div className="text-green-200 text-xs mt-1">🎉 Soglia raggiunta!</div>
+                                        )}
                                     </div>
                                     <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center">
                                       <div className="text-red-400 font-bold">❌ RIFIUTO</div>
                                       <div className="text-red-300">
-                                        Servono {Math.max(1, rejectionThreshold)} voti contrari
+                                        Servono {rejectionThreshold} voti contrari
                                       </div>
-                                      {isEvenPlayers && ("")}
-                                      {proposal.votes_against >= Math.max(1, rejectionThreshold) && (
-                                        <div className="text-red-200 text-xs mt-1">⛔ Soglia raggiunta!</div>
-                                      )}
+                                        {proposal.votes_against >= rejectionThreshold && (
+                                          <div className="text-red-200 text-xs mt-1">⛔ Soglia raggiunta!</div>
+                                        )}
                                     </div>
                                   </>
                                 )
