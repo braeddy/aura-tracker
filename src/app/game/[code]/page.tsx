@@ -1517,11 +1517,7 @@ export default function GamePage() {
                                       <div className="text-green-300">
                                         Servono {approvalThreshold} voti favorevoli
                                       </div>
-                                      {isEvenPlayers && (
-                                        <div className="text-green-200 text-xs">
-                                          (metà + 1)
-                                        </div>
-                                      )}
+                                      {isEvenPlayers && ("")}
                                       {proposal.votes_for >= approvalThreshold && (
                                         <div className="text-green-200 text-xs mt-1">🎉 Soglia raggiunta!</div>
                                       )}
@@ -1531,11 +1527,7 @@ export default function GamePage() {
                                       <div className="text-red-300">
                                         Servono {Math.max(1, rejectionThreshold)} voti contrari
                                       </div>
-                                      {isEvenPlayers && (
-                                        <div className="text-red-200 text-xs">
-                                          (metà - 1)
-                                        </div>
-                                      )}
+                                      {isEvenPlayers && ("")}
                                       {proposal.votes_against >= Math.max(1, rejectionThreshold) && (
                                         <div className="text-red-200 text-xs mt-1">⛔ Soglia raggiunta!</div>
                                       )}
