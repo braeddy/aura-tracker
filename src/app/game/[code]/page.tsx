@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { UserPlus, Trophy, UserX, ArrowLeft, Trash2, LogOut, User } from 'lucide-react'
+import { UserPlus, Trophy, UserX, ArrowLeft, Trash2, LogOut, User, BookOpen, Settings } from 'lucide-react'
 import LoginModal from '@/components/LoginModal'
 import ProposalModal from '@/components/ProposalModal'
 
@@ -80,6 +80,13 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('home')
   const [joiningGame, setJoiningGame] = useState(false)
+
+  // Stati per le impostazioni della partita
+  const [editingGameName, setEditingGameName] = useState(false)
+  const [editingGameCode, setEditingGameCode] = useState(false)
+  const [newGameName, setNewGameName] = useState('')
+  const [newGameCode, setNewGameCode] = useState('')
+  const [savingSettings, setSavingSettings] = useState(false)
 
   // Stati per il sistema di login
   const [currentUser, setCurrentUser] = useState<{
@@ -374,57 +381,6 @@ export default function GamePage() {
     })
   }
 
-  // Funzione per resettare la partita
-  const resetGame = () => {
-    setNotification({
-      show: true,
-      type: 'reset',
-      message: 'Sei sicuro di voler resettare la partita? Tutti i punti aura e le azioni verranno eliminate, ma i giocatori rimarranno.',
-      onConfirm: async () => {
-        try {
-          const response = await fetch(`/api/games/${code}/reset`, {
-            method: 'POST',
-          })
-          
-          if (response.ok) {
-            setNotification({ show: false, type: null, message: '', onConfirm: () => {} })
-            await fetchGameData() // Ricarica i dati
-          } else {
-            alert('Errore durante il reset della partita')
-          }
-        } catch (error) {
-          console.error('Errore nel reset:', error)
-          alert('Errore di connessione durante il reset')
-        }
-      }
-    })
-  }
-
-  // Funzione per eliminare la partita
-  const deleteGame = () => {
-    setNotification({
-      show: true,
-      type: 'delete',
-      message: 'Sei sicuro di voler eliminare definitivamente questa partita? Tutti i dati verranno persi per sempre.',
-      onConfirm: async () => {
-        try {
-          const response = await fetch(`/api/games/${code}`, {
-            method: 'DELETE',
-          })
-          
-          if (response.ok) {
-            router.push('/') // Reindirizza alla home page
-          } else {
-            alert('Errore durante l\'eliminazione della partita')
-          }
-        } catch (error) {
-          console.error('Errore nell\'eliminazione:', error)
-          alert('Errore di connessione durante l\'eliminazione')
-        }
-      }
-    })
-  }
-
   // Funzioni per gestire i commenti delle azioni
   const fetchActionComments = async (actionId: string) => {
     setLoadingComments(true)
@@ -530,6 +486,118 @@ export default function GamePage() {
       console.error('Errore nel fetch proposte:', error)
     }
   }, [code])
+
+  // Funzioni per la gestione delle impostazioni della partita
+  const resetGame = async () => {
+    setNotification({
+      show: true,
+      type: 'reset',
+      message: 'Sei sicuro di voler resettare la partita? Tutte le azioni e i punti verranno azzerati ma i giocatori rimarranno.',
+      onConfirm: async () => {
+        setSavingSettings(true)
+        try {
+          const response = await fetch(`/api/games/${code}/reset`, {
+            method: 'POST',
+          })
+          
+          if (response.ok) {
+            setNotification({ show: false, type: null, message: '', onConfirm: () => {} })
+            await fetchGameData() // Ricarica i dati
+          } else {
+            alert('Errore durante il reset della partita')
+          }
+        } catch (error) {
+          console.error('Errore nel reset:', error)
+          alert('Errore di connessione durante il reset')
+        } finally {
+          setSavingSettings(false)
+        }
+      }
+    })
+  }
+
+  const deleteGame = async () => {
+    setNotification({
+      show: true,
+      type: 'delete',
+      message: 'Sei sicuro di voler eliminare definitivamente questa partita? Tutti i dati verranno persi per sempre.',
+      onConfirm: async () => {
+        setSavingSettings(true)
+        try {
+          const response = await fetch(`/api/games/${code}`, {
+            method: 'DELETE',
+          })
+          
+          if (response.ok) {
+            router.push('/')
+          } else {
+            alert('Errore durante l\'eliminazione della partita')
+          }
+        } catch (error) {
+          console.error('Errore nell\'eliminazione:', error)
+          alert('Errore di connessione durante l\'eliminazione')
+        } finally {
+          setSavingSettings(false)
+        }
+      }
+    })
+  }
+
+  const updateGameName = async () => {
+    if (!newGameName.trim()) return
+    
+    setSavingSettings(true)
+    try {
+      const response = await fetch(`/api/games/${code}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newGameName.trim() }),
+      })
+      
+      if (response.ok) {
+        await fetchGameData() // Ricarica i dati
+        setEditingGameName(false)
+        setNewGameName('')
+      } else {
+        alert('Errore durante l\'aggiornamento del nome della partita')
+      }
+    } catch (error) {
+      console.error('Errore nell\'aggiornamento:', error)
+      alert('Errore di connessione durante l\'aggiornamento')
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
+  const updateGameCode = async () => {
+    if (!newGameCode.trim()) return
+    
+    setSavingSettings(true)
+    try {
+      const response = await fetch(`/api/games/${code}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code: newGameCode.trim() }),
+      })
+      
+      if (response.ok) {
+        // Reindirizza alla nuova URL con il nuovo codice
+        router.push(`/game/${newGameCode.trim()}`)
+      } else {
+        const errorData = await response.json()
+        alert(errorData.error || 'Errore durante l\'aggiornamento del codice della partita')
+      }
+    } catch (error) {
+      console.error('Errore nell\'aggiornamento:', error)
+      alert('Errore di connessione durante l\'aggiornamento')
+    } finally {
+      setSavingSettings(false)
+    }
+  }
 
   useEffect(() => {
     if (code) {
@@ -1032,7 +1100,7 @@ export default function GamePage() {
               title="Torna alla home"
             >
               <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="text-xs sm:text-sm font-medium hidden sm:inline">Home</span>
+              <span className="text-xs sm:text-sm font-medium hidden sm:inline">Esci</span>
             </button>
           </div>
 
@@ -1095,7 +1163,7 @@ export default function GamePage() {
 
           {/* Navigation */}
           <div className="max-w-7xl mx-auto px-2 sm:px-4">
-            <div className="flex justify-center items-center space-x-2 sm:space-x-6 pb-4 sm:pb-6 overflow-x-auto">
+            <div className="flex justify-center items-center space-x-2 sm:space-x-6 pb-4 sm:pb-6 overflow-x-auto py-2">
               <button
                 onClick={() => setActiveTab('home')}
                 className={`flex items-center gap-1 sm:gap-2 px-4 sm:px-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-lg transition-all duration-300 transform hover:scale-105 shadow-lg backdrop-blur whitespace-nowrap ${
@@ -1117,19 +1185,26 @@ export default function GamePage() {
                 🏆 <span className="hidden sm:inline">Classifica</span>
                 <span className="sm:hidden">{players.length}</span>
               </button>
-              
-              {/* Action Buttons */}
               <button
-                onClick={resetGame}
-                className="flex items-center gap-1 sm:gap-2 px-3 sm:px-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 transition-all duration-300 transform hover:scale-105 shadow-xl backdrop-blur border border-white/20 whitespace-nowrap"
+                onClick={() => setActiveTab('actions')}
+                className={`flex items-center gap-1 sm:gap-2 px-4 sm:px-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-lg transition-all duration-300 transform hover:scale-105 shadow-lg backdrop-blur whitespace-nowrap ${
+                  activeTab === 'actions' 
+                    ? 'bg-gradient-to-r from-green-500 to-teal-500 text-white shadow-xl border border-white/20' 
+                    : 'bg-white/20 text-gray-300 hover:bg-white/30 hover:text-white border border-white/20'
+                }`}
               >
-                🔄 <span className="hidden sm:inline">Reset</span>
+                📚 <span className="hidden sm:inline">Storico Azioni</span>
+                <span className="sm:hidden">{actions.length}</span>
               </button>
               <button
-                onClick={deleteGame}
-                className="flex items-center gap-1 sm:gap-2 px-3 sm:px-6 py-2 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-lg bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 transition-all duration-300 transform hover:scale-105 shadow-xl backdrop-blur border border-white/20 whitespace-nowrap"
+                onClick={() => setActiveTab('settings')}
+                className={`flex items-center gap-1 sm:gap-2 px-4 sm:px-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-lg transition-all duration-300 transform hover:scale-105 shadow-lg backdrop-blur whitespace-nowrap ${
+                  activeTab === 'settings' 
+                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-xl border border-white/20' 
+                    : 'bg-white/20 text-gray-300 hover:bg-white/30 hover:text-white border border-white/20'
+                }`}
               >
-                🗑️ <span className="hidden sm:inline">Elimina</span>
+                ⚙️ <span className="hidden sm:inline">Impostazioni</span>
               </button>
             </div>
           </div>
@@ -1348,26 +1423,132 @@ export default function GamePage() {
                       <p className="text-sm text-gray-400">Le proposte di modifica aura appariranno qui</p>
                     </div>
                   ) : (
-                    <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                    <div className="space-y-3">
                       {proposals.filter(p => p.status === 'pending').map((proposal) => (
-                        <div key={proposal.id} className="bg-white/10 backdrop-blur rounded-xl p-4 border border-white/20">
+                        <div key={proposal.id} className="bg-white/10 backdrop-blur rounded-xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg">
                           <div className="flex justify-between items-start mb-2">
                             <div className="font-bold text-white text-sm">
                               {proposal.players?.name || players.find(p => p.id === proposal.player_id)?.name}
                             </div>
-                            <div className={`text-xs px-2 py-1 rounded-lg ${
+                            <div className={`text-lg px-3 py-2 rounded-lg font-bold text-center ${
                               proposal.points > 0 ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
                             }`}>
-                              {proposal.points > 0 ? '+' : ''}{formatAuraValue(proposal.points)}
+                              {proposal.points > 0 ? '+' : ''}{formatAuraValue(proposal.points)} Aura
                             </div>
                           </div>
                           <p className="text-gray-300 text-xs mb-3">{proposal.description}</p>
+                          
+                          {/* Status Bar del Voto - Versione Migliorata */}
+                          <div className="mb-3">
+                            {/* Header con progresso generale */}
+                            <div className="flex justify-between items-center text-xs mb-2">
+                              <span className="text-white font-medium">
+                                Progresso Voto
+                              </span>
+                              <span className="text-gray-300">
+                                {proposal.votes_for + proposal.votes_against} di {players.length} voti
+                              </span>
+                            </div>
+                            
+                            {/* Barra di Progresso Principale */}
+                            <div className="w-full bg-gray-800/60 rounded-xl h-4 overflow-hidden mb-2 border border-gray-600/30">
+                              <div className="h-full flex relative">
+                                {/* Voti a favore */}
+                                <div 
+                                  className="bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500 flex items-center justify-center"
+                                  style={{ 
+                                    width: `${(proposal.votes_for / players.length) * 100}%` 
+                                  }}
+                                >
+                                  {proposal.votes_for > 0 && (
+                                    <span className="text-white text-xs font-bold">
+                                      👍 {proposal.votes_for}
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Voti contrari */}
+                                <div 
+                                  className="bg-gradient-to-r from-red-500 to-pink-500 transition-all duration-500 flex items-center justify-center"
+                                  style={{ 
+                                    width: `${(proposal.votes_against / players.length) * 100}%` 
+                                  }}
+                                >
+                                  {proposal.votes_against > 0 && (
+                                    <span className="text-white text-xs font-bold">
+                                      👎 {proposal.votes_against}
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Spazio rimanente */}
+                                <div 
+                                  className="bg-gray-700/40 flex items-center justify-center"
+                                  style={{ 
+                                    width: `${Math.max(0, ((players.length - proposal.votes_for - proposal.votes_against) / players.length) * 100)}%` 
+                                  }}
+                                >
+                                  {(players.length - proposal.votes_for - proposal.votes_against) > 0 && (
+                                    <span className="text-gray-400 text-xs">
+                                      {players.length - proposal.votes_for - proposal.votes_against} rimasti
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Soglie di decisione */}
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              {(() => {
+                                // Calcola le soglie dinamicamente in base al numero di giocatori
+                                const totalPlayers = players.length
+                                const isEvenPlayers = totalPlayers % 2 === 0
+                                
+                                const approvalThreshold = isEvenPlayers 
+                                  ? Math.floor(totalPlayers / 2) + 1  // Metà + 1 per numeri pari
+                                  : Math.ceil(totalPlayers * 0.6)     // 60% per numeri dispari
+                                  
+                                const rejectionThreshold = isEvenPlayers 
+                                  ? Math.floor(totalPlayers / 2) - 1  // Metà - 1 per numeri pari  
+                                  : Math.ceil(totalPlayers * 0.4)     // 40% per numeri dispari
+                                
+                                return (
+                                  <>
+                                    <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-2 text-center">
+                                      <div className="text-green-400 font-bold">✅ APPROVAZIONE</div>
+                                      <div className="text-green-300">
+                                        Servono {approvalThreshold} voti favorevoli
+                                      </div>
+                                      {isEvenPlayers && (
+                                        <div className="text-green-200 text-xs">
+                                          (metà + 1)
+                                        </div>
+                                      )}
+                                      {proposal.votes_for >= approvalThreshold && (
+                                        <div className="text-green-200 text-xs mt-1">🎉 Soglia raggiunta!</div>
+                                      )}
+                                    </div>
+                                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-2 text-center">
+                                      <div className="text-red-400 font-bold">❌ RIFIUTO</div>
+                                      <div className="text-red-300">
+                                        Servono {Math.max(1, rejectionThreshold)} voti contrari
+                                      </div>
+                                      {isEvenPlayers && (
+                                        <div className="text-red-200 text-xs">
+                                          (metà - 1)
+                                        </div>
+                                      )}
+                                      {proposal.votes_against >= Math.max(1, rejectionThreshold) && (
+                                        <div className="text-red-200 text-xs mt-1">⛔ Soglia raggiunta!</div>
+                                      )}
+                                    </div>
+                                  </>
+                                )
+                              })()}
+                            </div>
+                          </div>
+                          
                           <div className="flex justify-between items-center text-xs mb-3">
-                            <span className="text-gray-400">
-                              👍 {proposal.votes_for} | 👎 {proposal.votes_against}
-                            </span>
                             <span className="text-purple-300">
-                              di {proposal.proposed_by_username}
+                              👤 Proposta di {proposal.proposed_by_username}
                             </span>
                           </div>
                           
@@ -1382,7 +1563,7 @@ export default function GamePage() {
                               </button>
                               <button
                                 onClick={() => voteProposal(proposal.id, 'reject')}
-                                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded-lg text-xs font-medium transition-colors"
+                                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded-lg text-xs font-medium transition-colors"
                               >
                                 👎 Rifiuta
                               </button>
@@ -1400,12 +1581,12 @@ export default function GamePage() {
                   )}
                 </div>
 
-                {/* Storico Azioni */}
+                {/* Azioni Recenti */}
                 <div className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-2xl p-4 sm:p-8">
                   <div className="flex items-center gap-3 mb-4 sm:mb-6">
                     <div className="text-2xl">📚</div>
                     <h2 className="text-xl sm:text-2xl font-bold text-white">
-                      Storico Azioni
+                      Azioni Recenti
                     </h2>
                   </div>
                   {actions.length === 0 ? (
@@ -1415,63 +1596,59 @@ export default function GamePage() {
                       <p className="text-sm text-gray-400">🎮 Le azioni appariranno qui quando inizierai a giocare!</p>
                   </div>
                 ) : (
-                  <div className="space-y-3 sm:space-y-4 max-h-[400px] sm:max-h-[600px] overflow-y-auto">
-                    {actions.map((action) => (
+                  <div className="space-y-3">
+                    {actions.slice(0, 3).map((action) => (
                       <div 
                         key={action.id} 
-                        className="flex items-start gap-3 sm:gap-4 p-4 sm:p-6 bg-white/10 backdrop-blur border border-white/20 rounded-xl sm:rounded-2xl hover:bg-white/20 transition-all duration-300 cursor-pointer transform hover:scale-[1.02]"
+                        className="bg-white/10 backdrop-blur border border-white/20 rounded-xl p-4 hover:bg-white/20 hover:border-white/30 transition-all duration-300 transform hover:scale-[1.02] cursor-pointer hover:shadow-lg min-w-0"
                         onClick={() => openActionModal(action)}
                         title="Clicca per vedere dettagli e commenti"
                       >
-                        <div className="flex-shrink-0">
-                          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center text-xs sm:text-sm font-bold backdrop-blur border border-white/30 ${
-                            action.points > 0 
-                              ? 'bg-gradient-to-r from-green-500/30 to-emerald-500/30 text-green-300' 
-                              : 'bg-gradient-to-r from-red-500/30 to-pink-500/30 text-red-300'
-                          }`}>
-                            {action.points > 0 ? '+' : ''}{formatAuraValue(action.points)}
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold text-white text-base sm:text-lg">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="font-bold text-white text-sm flex-1 min-w-0 pr-2">
                             {players.find(p => p.id === action.player_id)?.name}
                           </div>
-                          <div className="text-xs sm:text-sm text-gray-300 truncate mt-1">
-                            {action.description}
+                          <div className={`text-lg px-3 py-2 rounded-lg font-bold text-center flex-shrink-0 ${
+                            action.points > 0 
+                              ? 'bg-green-500/20 text-green-300' 
+                              : 'bg-red-500/20 text-red-300'
+                          }`}>
+                            {action.points > 0 ? '+' : ''}{formatAuraValue(action.points)} Aura
                           </div>
-                          <div className="flex items-center justify-between mt-1">
-                            <div>
-                              {action.performed_by_username && (
-                                <div className="text-xs text-blue-300 flex items-center gap-1">
-                                  <User className="w-3 h-3" />
-                                  Aggiunto da {action.performed_by_username}
-                                </div>
-                              )}
-                              {!action.performed_by_username && (
-                                <div className="text-xs text-gray-500 flex items-center gap-1">
-                                  <User className="w-3 h-3" />
-                                  Azione automatica
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-xs text-purple-300 flex items-center gap-1">
-                              💬 <span>Commenti</span>
-                            </div>
+                        </div>
+                        <p className="text-gray-300 text-xs mb-3 break-words">{action.description}</p>
+                        
+                        <div className="flex justify-between items-center text-xs mb-3 min-w-0">
+                          <div className="flex-1 min-w-0 pr-2">
+                            {action.performed_by_username && (
+                              <span className="text-blue-300 truncate block">
+                                👤 Aggiunto da {action.performed_by_username}
+                              </span>
+                            )}
+                            {!action.performed_by_username && (
+                              <span className="text-gray-500">
+                                🤖 Azione automatica
+                              </span>
+                            )}
                           </div>
-                          <div className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                          <span className="text-purple-300 flex-shrink-0">
+                            💬 Commenti
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center min-w-0">
+                          <div className="text-xs text-gray-400 flex items-center gap-1 flex-1 min-w-0">
                             🕐 {new Date(action.created_at).toLocaleTimeString('it-IT', {
                               hour: '2-digit',
                               minute: '2-digit'
                             })}
                           </div>
-                        </div>
-                        <div className="flex-shrink-0">
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
                               deleteAction(action.id, action.description)
                             }}
-                            className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                            className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors flex-shrink-0 ml-2"
                             title="Elimina azione"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1479,6 +1656,16 @@ export default function GamePage() {
                         </div>
                       </div>
                     ))}
+                    {actions.length > 3 && (
+                      <div className="pt-3 text-center">
+                        <button
+                          onClick={() => setActiveTab('actions')}
+                          className="text-blue-300 hover:text-blue-200 text-sm font-medium transition-colors underline"
+                        >
+                          Visualizza tutte le {actions.length} azioni →
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1486,13 +1673,107 @@ export default function GamePage() {
           </div>
         )}
 
+        {activeTab === 'actions' && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-2xl p-4 sm:p-8">
+            <div className="flex items-center gap-3 mb-4 sm:mb-6">
+              <div className="bg-gradient-to-r from-green-500 to-teal-500 p-2 rounded-xl">
+                <div className="text-2xl">📚</div>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Storico Completo Azioni</h2>
+              <div className="text-sm text-gray-300 bg-white/10 px-3 py-1 rounded-full">
+                {actions.length} {actions.length === 1 ? 'azione' : 'azioni'}
+              </div>
+            </div>
+            
+            {actions.length === 0 ? (
+              <div className="text-center py-12 sm:py-16">
+                <div className="text-6xl sm:text-8xl mb-4 sm:mb-6">📋</div>
+                <p className="text-xl sm:text-2xl font-bold text-white mb-2">Nessuna azione registrata</p>
+                <p className="text-base sm:text-lg text-gray-300">🎮 Lo storico delle azioni apparirà qui quando inizierai a giocare!</p>
+              </div>
+            ) : (
+              <div className="space-y-3 sm:space-y-4">
+                {actions.map((action) => (
+                  <div 
+                    key={action.id} 
+                    className="bg-white/10 backdrop-blur border border-white/20 rounded-xl p-4 sm:p-6 hover:bg-white/20 hover:border-white/30 transition-all duration-300 transform hover:scale-[1.02] cursor-pointer hover:shadow-lg"
+                    onClick={() => openActionModal(action)}
+                    title="Clicca per vedere dettagli e commenti"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-full w-10 h-10 flex items-center justify-center font-bold text-white shadow-lg">
+                          {players.find(p => p.id === action.player_id)?.name?.charAt(0).toUpperCase() || '?'}
+                        </div>
+                        <div>
+                          <div className="font-bold text-white text-base">
+                            {players.find(p => p.id === action.player_id)?.name || 'Giocatore sconosciuto'}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            🕐 {new Date(action.created_at).toLocaleString('it-IT', {
+                              day: '2-digit',
+                              month: '2-digit', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={`text-xl px-4 py-2 rounded-lg font-bold text-center ${
+                        action.points > 0 
+                          ? 'bg-green-500/20 text-green-300' 
+                          : 'bg-red-500/20 text-red-300'
+                      }`}>
+                        {action.points > 0 ? '+' : ''}{formatAuraValue(action.points)} Aura
+                      </div>
+                    </div>
+                    
+                    <p className="text-gray-300 text-sm mb-4 bg-white/5 p-3 rounded-lg break-words">
+                      "{action.description}"
+                    </p>
+                    
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-4 text-xs">
+                        {action.performed_by_username && (
+                          <span className="text-blue-300 flex items-center gap-1">
+                            👤 Aggiunto da {action.performed_by_username}
+                          </span>
+                        )}
+                        {!action.performed_by_username && (
+                          <span className="text-gray-500 flex items-center gap-1">
+                            🤖 Azione automatica
+                          </span>
+                        )}
+                        <span className="text-purple-300 flex items-center gap-1">
+                          💬 Commenti disponibili
+                        </span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          deleteAction(action.id, action.description)
+                        }}
+                        className="p-2 hover:bg-red-500/20 rounded-lg text-red-400 hover:text-red-300 transition-colors"
+                        title="Elimina azione"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'players' && (
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-2xl p-4 sm:p-8">
             <div className="flex items-center gap-3 mb-4 sm:mb-6">
               <div className="bg-gradient-to-r from-yellow-500 to-orange-500 p-2 rounded-xl">
-                <Trophy className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                <div className="text-2xl">🏆</div>
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white">🏆 Classifica Giocatori</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Classifica Giocatori</h2>
             </div>
             <div className="space-y-3 sm:space-y-4">
               {players.sort((a, b) => b.aura_points - a.aura_points).map((player, index) => (
@@ -1526,6 +1807,158 @@ export default function GamePage() {
                   <p className="text-base sm:text-lg text-gray-300">✨ Aggiungi giocatori per vedere la classifica! ✨</p>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl sm:rounded-3xl border border-white/20 shadow-2xl p-4 sm:p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="bg-gradient-to-r from-orange-500 to-red-500 p-2 rounded-xl">
+                <div className="text-2xl">⚙️</div>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-white">Impostazioni Partita</h2>
+            </div>
+
+            <div className="space-y-6">
+              {/* Modifica Nome Partita */}
+              <div className="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/20">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  📝 Nome Partita
+                </h3>
+                {editingGameName ? (
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      value={newGameName}
+                      onChange={(e) => setNewGameName(e.target.value)}
+                      placeholder={game.name}
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-white/40 backdrop-blur"
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        onClick={updateGameName}
+                        disabled={savingSettings || !newGameName.trim()}
+                        className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-500 disabled:to-gray-600 text-white py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100"
+                      >
+                        {savingSettings ? '💾 Salvando...' : '💾 Salva Nome'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingGameName(false)
+                          setNewGameName('')
+                        }}
+                        disabled={savingSettings}
+                        className="flex-1 bg-white/20 hover:bg-white/30 disabled:bg-white/10 text-white py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100"
+                      >
+                        ❌ Annulla
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-white font-medium text-lg">{game.name}</div>
+                      <div className="text-gray-400 text-sm">Nome corrente della partita</div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setEditingGameName(true)
+                        setNewGameName(game.name)
+                      }}
+                      className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105"
+                    >
+                      ✏️ Modifica
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Modifica Codice Partita */}
+              <div className="bg-white/10 backdrop-blur rounded-2xl p-6 border border-white/20">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  🔑 Codice Partita
+                </h3>
+                {editingGameCode ? (
+                  <div className="space-y-4">
+                    <input
+                      type="text"
+                      value={newGameCode}
+                      onChange={(e) => setNewGameCode(e.target.value)}
+                      placeholder={game.code}
+                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-white/40 backdrop-blur font-mono"
+                    />
+                    <div className="text-sm text-yellow-300 bg-yellow-500/10 p-3 rounded-lg">
+                      ⚠️ Attenzione: cambiando il codice, l'URL della partita cambierà e dovrai condividere il nuovo link con i giocatori.
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={updateGameCode}
+                        disabled={savingSettings || !newGameCode.trim()}
+                        className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 disabled:from-gray-500 disabled:to-gray-600 text-white py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100"
+                      >
+                        {savingSettings ? '💾 Salvando...' : '💾 Salva Codice'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingGameCode(false)
+                          setNewGameCode('')
+                        }}
+                        disabled={savingSettings}
+                        className="flex-1 bg-white/20 hover:bg-white/30 disabled:bg-white/10 text-white py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100"
+                      >
+                        ❌ Annulla
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-white font-medium text-lg font-mono">{game.code}</div>
+                      <div className="text-gray-400 text-sm">Codice corrente della partita</div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setEditingGameCode(true)
+                        setNewGameCode(game.code)
+                      }}
+                      className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-6 py-3 rounded-xl font-bold transition-all duration-300 transform hover:scale-105"
+                    >
+                      ✏️ Modifica
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Azioni Pericolose */}
+              <div className="bg-red-500/10 backdrop-blur rounded-2xl p-6 border border-red-500/20">
+                <h3 className="text-lg font-bold text-red-400 mb-4 flex items-center gap-2">
+                  ⚠️ Azioni Pericolose
+                </h3>
+                <div className="space-y-4">
+                  <button
+                    onClick={resetGame}
+                    disabled={savingSettings}
+                    className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 disabled:from-gray-500 disabled:to-gray-600 text-white py-4 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100 flex items-center justify-center gap-2"
+                  >
+                    🔄 Reset Partita
+                  </button>
+                  <p className="text-sm text-gray-400 text-center">
+                    Azzera tutti i punti aura e le azioni, ma mantiene i giocatori
+                  </p>
+                  
+                  <button
+                    onClick={deleteGame}
+                    disabled={savingSettings}
+                    className="w-full bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 disabled:from-gray-500 disabled:to-gray-600 text-white py-4 rounded-xl font-bold transition-all duration-300 transform hover:scale-105 disabled:scale-100 flex items-center justify-center gap-2"
+                  >
+                    🗑️ Elimina Partita
+                  </button>
+                  <p className="text-sm text-gray-400 text-center">
+                    Elimina definitivamente la partita e tutti i suoi dati
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         )}

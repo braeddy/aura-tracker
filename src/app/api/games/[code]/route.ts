@@ -86,6 +86,113 @@ export async function GET(
   }
 }
 
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ code: string }> }
+) {
+  try {
+    const { code } = await params
+    
+    if (!code || typeof code !== 'string') {
+      return NextResponse.json(
+        { error: 'Codice partita richiesto' },
+        { status: 400 }
+      )
+    }
+
+    const body = await request.json()
+    const { name, code: newCode } = body
+
+    if (!name && !newCode) {
+      return NextResponse.json(
+        { error: 'Nome o codice richiesto per l\'aggiornamento' },
+        { status: 400 }
+      )
+    }
+
+    const supabase = await createClient()
+
+    // Verifica se la partita esiste
+    const { data: game, error: gameError } = await supabase
+      .from('games')
+      .select('*')
+      .eq('code', code.toUpperCase())
+      .single()
+
+    if (gameError || !game) {
+      return NextResponse.json(
+        { error: 'Partita non trovata' },
+        { status: 404 }
+      )
+    }
+
+    // Prepara i dati da aggiornare
+    const updateData: any = {}
+    
+    if (name && name.trim()) {
+      updateData.name = name.trim()
+    }
+    
+    if (newCode && newCode.trim()) {
+      const upperNewCode = newCode.trim().toUpperCase()
+      
+      // Verifica che il nuovo codice non sia già in uso (solo se diverso dal corrente)
+      if (upperNewCode !== game.code) {
+        const { data: existingGame, error: checkError } = await supabase
+          .from('games')
+          .select('id')
+          .eq('code', upperNewCode)
+          .single()
+
+        if (existingGame) {
+          return NextResponse.json(
+            { error: 'Codice partita già in uso. Scegli un codice diverso.' },
+            { status: 409 }
+          )
+        }
+        
+        updateData.code = upperNewCode
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: 'Nessuna modifica da effettuare' },
+        { status: 400 }
+      )
+    }
+
+    // Aggiorna la partita
+    const { data: updatedGame, error: updateError } = await supabase
+      .from('games')
+      .update(updateData)
+      .eq('id', game.id)
+      .select()
+      .single()
+
+    if (updateError) {
+      console.error('Errore nell\'aggiornamento della partita:', updateError)
+      return NextResponse.json(
+        { error: 'Errore nell\'aggiornamento della partita' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ 
+      message: 'Partita aggiornata con successo',
+      game: updatedGame,
+      updatedAt: new Date().toISOString()
+    })
+
+  } catch (error) {
+    console.error('Errore nell\'aggiornamento della partita:', error)
+    return NextResponse.json(
+      { error: 'Errore interno del server' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> }
